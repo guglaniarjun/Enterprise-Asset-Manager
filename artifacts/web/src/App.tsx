@@ -22,7 +22,10 @@ import SubmitLog from "./pages/SubmitLog";
 import MissingLogs from "./pages/MissingLogs";
 import Compliance from "./pages/Compliance";
 import StudentsList from "./pages/StudentsList";
-import StudentDetail from "./pages/StudentDetail";
+import StudentProfile from "./pages/StudentProfile";
+import TeacherProfile from "./pages/TeacherProfile";
+import ClassSectionProfile from "./pages/ClassSectionProfile";
+import KpiDetail from "./pages/KpiDetail";
 import TasksList from "./pages/TasksList";
 import AlertsList from "./pages/AlertsList";
 import Syllabus from "./pages/Syllabus";
@@ -61,6 +64,7 @@ function AuthenticatedApp() {
         <Route path="/dashboard/principal" component={PrincipalDashboard} />
         <Route path="/dashboard/coordinator" component={CoordinatorDashboard} />
         <Route path="/dashboard/teacher" component={TeacherDashboard} />
+        <Route path="/dashboard/kpi/:kpiKey" component={KpiDetail} />
         
         <Route path="/logs/submit" component={SubmitLog} />
         <Route path="/logs/missing" component={MissingLogs} />
@@ -69,8 +73,11 @@ function AuthenticatedApp() {
         <Route path="/logs/:id" component={LogDetail} />
         <Route path="/logs" component={LogsList} />
         
-        <Route path="/students/:id" component={StudentDetail} />
+        <Route path="/students/:id" component={StudentProfile} />
         <Route path="/students" component={StudentsList} />
+
+        <Route path="/teachers/:id" component={TeacherProfile} />
+        <Route path="/classes/:classId/sections/:sectionId" component={ClassSectionProfile} />
         
         <Route path="/tasks" component={TasksList} />
         <Route path="/alerts" component={AlertsList} />

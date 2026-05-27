@@ -1,0 +1,197 @@
+Phase B.1 approved.
+
+Proceed with Phase C only.
+
+Do not start Phase D, AI, OCR advanced integration, CRM, DairyPro, Nursery, SancharPro, Radical Logix, accounting, or marketing.
+
+PHASE C OBJECTIVE:
+Build deep drill-down operational dashboards across the Academic Monitoring module.
+
+This is mandatory:
+The system must not behave like a static dashboard.
+Every KPI card, table row, alert, task, metric, and summary must drill down to the underlying records wherever logically possible.
+
+Scope:
+
+1. Director Drill-Down Dashboard
+Build clickable KPI cards for:
+- Expected logs today
+- Submitted logs today
+- Missing logs
+- Teacher compliance %
+- Syllabus completion %
+- Classes behind syllabus
+- Subjects behind syllabus
+- Discipline cases today
+- Repeated discipline students
+- Repeated inattentive students
+- Achievements recorded
+- Coordinator verification pending
+- Rejected logs pending resubmission
+- Open tasks
+- Critical alerts
+
+2. Drill-Down Navigation Pattern
+Implement drill-down flow with breadcrumbs:
+
+Dashboard
+→ KPI detail page
+→ Class/Section/Subject/Teacher grouping
+→ Specific logs/students/tasks/alerts
+→ Exact record detail
+
+Examples:
+Classes Behind Syllabus
+→ class list
+→ section list
+→ subject list
+→ teacher
+→ syllabus plan
+→ daily logs
+→ student events
+
+Discipline Cases
+→ class
+→ student
+→ incidents
+→ log details
+→ follow-up status
+
+Teacher Compliance
+→ teacher list
+→ missing logs
+→ submitted logs
+→ verification status
+→ exact log
+
+Pending Verifications
+→ coordinator/class
+→ logs pending
+→ log detail
+→ verify/reject
+
+3. KPI Detail Pages
+Create reusable KPI detail page architecture:
+- route pattern like /dashboard/kpi/:kpiKey
+- title
+- summary cards
+- filters
+- grouped table
+- drill-down rows
+- breadcrumb support
+- empty state
+- loading state
+
+4. Filters
+Add filters where relevant:
+- date range
+- class
+- section
+- subject
+- teacher
+- status
+- event type
+- severity
+
+Filters should persist while drilling down.
+
+5. Alert Drill-Down
+Every alert should link to source:
+- missing log alert → teacher/class/period
+- syllabus behind alert → syllabus entry
+- discipline alert → student event/log
+- verification pending → log detail
+
+6. Task Drill-Down
+Every task should link to related entity:
+- related log
+- related student
+- related syllabus
+- related alert
+
+7. Student Profile Drill-Down
+Create student profile view:
+- basic student info
+- class/section
+- attendance/event history from logs
+- discipline events
+- achievements
+- improvement notes
+- counselling-needed events
+- linked logs
+- open tasks/alerts related to student
+
+8. Teacher Profile Drill-Down
+Create teacher profile view:
+- assigned classes/subjects
+- logs submitted
+- missing logs
+- verified/rejected logs
+- syllabus entries
+- compliance %
+- student events recorded
+- pending corrections
+
+9. Class/Section View
+Create class-section view:
+- students
+- assigned teachers
+- subjects
+- submitted/missing logs
+- syllabus progress
+- student events
+- discipline/achievement summary
+
+10. Performance Rules
+Do not make dashboards slow.
+Use backend aggregation endpoints where required.
+Avoid pulling excessive raw data into the frontend.
+
+11. Backend/API
+Add necessary aggregation/detail endpoints:
+- KPI summary
+- KPI detail
+- drill-down grouping
+- student profile
+- teacher profile
+- class-section profile
+- alert source resolver
+- task source resolver
+
+12. UI Rules
+- Breadcrumbs mandatory
+- Every meaningful row clickable
+- Side drawer/detail modal allowed where useful
+- Preserve filters during drill-down
+- Back navigation must work
+- Avoid dead-end static cards
+
+13. Security
+Maintain Phase A and B.1 rules:
+- tenant isolation
+- RBAC
+- teacher sees only permitted data
+- coordinator sees assigned scope where possible
+- principal/director see leadership dashboard
+
+14. Testing
+Run:
+- API typecheck
+- Web typecheck
+- dashboard smoke tests
+- drill-down navigation tests
+- role-based visibility checks
+
+15. Final Report
+Report:
+- screens added
+- routes added
+- API endpoints added
+- drill-down flows implemented
+- files changed
+- tests passed
+- known limitations
+
+Important:
+Do Phase C only.
+Stop after Phase C and wait for my approval.
