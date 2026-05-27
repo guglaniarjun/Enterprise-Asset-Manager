@@ -1,0 +1,917 @@
+You are my senior full-stack architect, enterprise systems designer, AI workflow engineer, and operational intelligence consultant.
+
+We are building:
+
+# SPRINGFIELD AI COMMAND CENTER — PHASE 1
+
+====================================================
+MASTER VISION
+====================================================
+
+This is NOT a simple school app.
+
+This is the foundation of a future AI-powered centralized command and control operating system for all my businesses and operations.
+
+Future connected ecosystems will include:
+
+1. School Academic Monitoring
+2. School Admissions CRM
+3. Radical Logix School ERP reports
+4. DairyPro ERP
+5. Nursery Operations
+6. SancharPro WhatsApp system
+7. Accounting
+8. Marketing
+9. Task Management
+10. AI Agents
+11. Director/CEO AI Dashboard
+
+The long-term vision is to create:
+
+A DIGITAL NERVOUS SYSTEM
+
+Where:
+- all apps and ERPs connect,
+- all operational data becomes AI-readable,
+- AI agents monitor operations,
+- risks are detected,
+- tasks are assigned,
+- alerts are generated,
+- summaries are created,
+- workflows are tracked,
+- escalations are triggered,
+- and leadership gets complete operational visibility.
+
+This platform must be architected from Day 1 to support future:
+- AI agents,
+- automation workflows,
+- dashboards,
+- integrations,
+- reporting systems,
+- and autonomous/semi-autonomous operational intelligence.
+
+====================================================
+PHASE 1 OBJECTIVE
+====================================================
+
+Build ONLY:
+
+1. Core platform foundation
+2. Academic Monitoring module
+
+Do NOT build:
+- DairyPro
+- Nursery
+- Admissions CRM
+- Accounting
+- Marketing
+- SancharPro
+- Radical Logix integrations
+- AI Agents
+
+ONLY create sidebar placeholders for future modules.
+
+====================================================
+IMPORTANT DEVELOPMENT RULE
+====================================================
+
+DO NOT START CODING IMMEDIATELY.
+
+FIRST:
+1. Analyze requirements
+2. Create architecture
+3. Create database schema
+4. Create API plan
+5. Create UI/page structure
+6. Create implementation roadmap
+7. Show everything for approval
+8. THEN start coding phase-by-phase
+
+====================================================
+CORE PLATFORM REQUIREMENTS
+====================================================
+
+Build a modular multi-tenant platform foundation.
+
+Core platform must include:
+
+1. Multi-tenant architecture
+2. Role-based authentication
+3. Role-based access control
+4. Dashboard shell
+5. Module sidebar
+6. Task system foundation
+7. Alert system foundation
+8. Audit log system
+9. OCR service abstraction layer
+10. AI service abstraction layer
+11. Integration-ready architecture
+12. Agent-ready architecture
+13. Drill-down operational visibility architecture
+
+====================================================
+ROLES
+====================================================
+
+1. Super Admin
+2. Tenant Admin
+3. Director
+4. Principal
+5. Coordinator
+6. Teacher
+7. Viewer/Auditor
+
+One user can have multiple roles.
+
+====================================================
+MULTI-TENANT HIERARCHY
+====================================================
+
+Tenant
+→ Branch/Campus
+→ Class
+→ Section
+→ Subject
+→ Teacher
+→ Daily Class Log
+→ Student-level events
+
+Every major table must include:
+- tenant_id
+- branch_id where applicable
+- created_by
+- created_at
+- updated_at
+
+====================================================
+PHASE 1 MODULE — ACADEMIC MONITORING
+====================================================
+
+Build these modules:
+
+1. Student Master Bulk Import
+2. Class/Section/Subject Management
+3. Teacher Assignment Management
+4. Syllabus Breakup Module
+5. Daily Class Log Module
+6. Student Behaviour/Discipline/Achievement Tagging
+7. Coordinator Verification Workflow
+8. Principal Exception Monitoring
+9. Director Drill-down Dashboard
+10. OCR/Photo Upload Assisted Form Filling
+
+====================================================
+ACADEMIC STRUCTURE
+====================================================
+
+School:
+Springfield Public School, Ambala
+
+Campus:
+Single campus for now
+
+Class range:
+Class 4 to Class 12
+
+Sections:
+A, B, C, D
+(Configurable per class)
+
+Subjects vary by class.
+
+Admin can manage class-wise subjects.
+
+Example subjects:
+English
+Hindi
+Mathematics
+Science
+Social Science
+Computer
+GK
+Moral Science
+Physical Education
+Physics
+Chemistry
+Biology
+Economics
+Business Studies
+Accountancy
+Political Science
+History
+Geography
+
+====================================================
+PERIOD STRUCTURE
+====================================================
+
+Default:
+8 periods per day.
+
+Keep future support for:
+- period timings
+- free periods
+- assembly
+- timetable integration
+
+Expected logs:
+Each teacher assigned to a scheduled period/class must submit one Daily Class Log per period taught.
+
+For Phase 1:
+Use manual teacher/class/subject mapping.
+Do NOT build advanced timetable engine now.
+
+====================================================
+STUDENT MASTER IMPORT
+====================================================
+
+Admin should upload CSV/Excel with:
+
+- admission_no
+- student_name
+- class
+- section
+- roll_no
+- father_name
+- mother_name
+- parent_contact
+- house
+- status
+
+Requirements:
+- duplicate admission validation
+- import preview
+- import error display
+- class/section mapping
+- bulk import
+
+House names:
+Red
+Blue
+Green
+Yellow
+
+Keep houses configurable.
+
+====================================================
+SYLLABUS BREAKUP MODULE
+====================================================
+
+Teachers create syllabus plan.
+Coordinator verifies/approves it.
+
+Support:
+- monthly planning
+- weekly planning foundation
+
+Fields:
+- class
+- section optional
+- subject
+- month
+- week
+- chapter
+- topic
+- subtopic
+- expected_periods
+- planned_start_date
+- planned_end_date
+- learning_outcomes
+- teaching_aids
+- activity_plan
+- assessment_plan
+- status:
+  Planned
+  In Progress
+  Completed
+  Delayed
+
+====================================================
+DAILY CLASS LOG MODULE
+====================================================
+
+Teacher submits period-wise daily log.
+
+Fields:
+- date
+- teacher_id
+- class
+- section
+- subject
+- period_number
+- syllabus_plan_id optional
+- topic_planned
+- topic_actually_taught
+- syllabus_status:
+  On Track
+  Behind
+  Ahead
+
+- teaching_method:
+  Lecture
+  Activity
+  Discussion
+  Test
+  Revision
+  Practical
+
+- homework_given
+- homework_details
+- notebook_work_given
+- notebook_work_details
+- absent_students
+- inattentive_students
+- discipline_issue
+- discipline_details
+- achievement_students
+- achievement_details
+- improvement_students
+- improvement_details
+- students_needing_counselling
+- remarks
+
+Workflow fields:
+- submitted_at
+- verification_status:
+  Pending
+  Verified
+  Rejected
+
+- verified_by
+- verification_time
+- coordinator_remarks
+
+====================================================
+EDIT / SUBMISSION RULES
+====================================================
+
+Teachers:
+- can edit before verification
+- cannot edit after verification unless reopened
+- can edit and resubmit after rejection
+
+Submission deadline:
+Default:
+6:00 PM same day
+
+Keep configurable later.
+
+====================================================
+STUDENT EVENT TAGGING
+====================================================
+
+Teacher should be able to tag individual students.
+
+Event categories:
+
+- Absent
+- Inattentive
+- Discipline Issue
+- Homework Defaulter
+- Notebook Incomplete
+- Good Performance
+- Achievement
+- Improvement Shown
+- Needs Counselling
+- Health Concern
+- Emotional Concern
+- Leadership Shown
+
+Keep categories configurable later.
+
+Each event stores:
+- student_id
+- daily_log_id
+- event_type
+- severity:
+  Low
+  Medium
+  High
+
+- remarks
+- follow_up_required
+- follow_up_date
+- status:
+  Open
+  Resolved
+
+Student tagging is optional except where discipline_issue is raised.
+
+====================================================
+VERIFICATION WORKFLOW
+====================================================
+
+Coordinator type:
+Primarily class-wise coordinator in Phase 1.
+
+Workflow:
+
+Teacher submits log
+→ Coordinator verifies/rejects
+→ Teacher resubmits if rejected
+→ Principal monitors exceptions
+→ Director sees overall dashboard
+
+Rejected log:
+- teacher notified in app
+- teacher edits and resubmits
+- resubmission deadline:
+  next working day
+
+====================================================
+MANDATORY DRILL-DOWN UI PHILOSOPHY
+====================================================
+
+The entire application MUST follow a deep drill-down operational monitoring philosophy.
+
+This is a mandatory core UI/UX requirement.
+
+At any and every meaningful dashboard card, KPI, table row, metric, alert, report item, graph, counter, summary, or entity:
+the user must be able to click and drill down deeper into the underlying data.
+
+The platform should NEVER show dead/static summary cards wherever drill-down is possible.
+
+Every click should progressively move from:
+summary
+→ category
+→ subcategory
+→ entity
+→ detailed record
+→ exact data entry/log/event/task.
+
+Examples:
+
+1. Academic KPI Flow:
+Classes Behind Syllabus
+→ Class
+→ Section
+→ Subject
+→ Teacher
+→ Syllabus Plan
+→ Daily Logs
+→ Student Events
+
+2. Discipline KPI Flow:
+Total Discipline Issues
+→ Class
+→ Student
+→ All incidents
+→ Teacher remarks
+→ Follow-up history
+→ Resolution status
+
+3. Teacher Compliance Flow:
+Teacher Compliance %
+→ Teacher
+→ Missing Logs
+→ Specific Periods
+→ Exact Daily Log Entries
+
+4. Student Performance Flow:
+Achievements Recorded
+→ Class
+→ Student
+→ Achievement timeline
+→ Supporting remarks/events
+
+5. Coordinator Monitoring Flow:
+Pending Verifications
+→ Coordinator
+→ Assigned Classes
+→ Pending Logs
+→ Exact log awaiting verification
+
+6. Future Dairy Example:
+Low Milk Yield
+→ Batch/Animal Group
+→ Individual Animal
+→ Feed History
+→ Health Events
+→ Worker Entries
+
+7. Future Nursery Example:
+Plant Mortality
+→ Category
+→ Batch
+→ Plant Group
+→ Propagation Cycle
+→ Daily Entries
+
+MANDATORY RULES:
+
+1. Every KPI card should support click-through where logically possible.
+2. Every table row should open detailed contextual data.
+3. Every alert should link to source records.
+4. Every graph/chart should support interactive drill-down.
+5. Every summary should connect to raw operational entries.
+6. Avoid dead-end screens.
+7. Avoid isolated static reports.
+8. Maintain breadcrumb navigation throughout drill-down hierarchy.
+9. Add global search and contextual filters.
+10. Maintain drill-down performance optimization for large datasets.
+
+UI/UX REQUIREMENTS:
+
+- Use breadcrumb navigation.
+- Use expandable/collapsible panels where useful.
+- Use side drawers/modals for quick detail inspection.
+- Use clickable cards and smart navigation.
+- Preserve filters during drill-down.
+- Allow quick return to previous level.
+- Add contextual summaries at each level.
+
+The system should feel like:
+an operational intelligence command center,
+NOT a static ERP.
+
+This drill-down philosophy is mandatory across current and future modules:
+- Academic Monitoring
+- Admissions CRM
+- DairyPro
+- Nursery Operations
+- SancharPro
+- Accounting
+- Marketing
+- AI Agents
+- Alerts
+- Tasks
+- Reports
+- Dashboards
+
+All future architecture and UI decisions must align with this drill-down operational visibility philosophy.
+
+====================================================
+DIRECTOR DASHBOARD
+====================================================
+
+Must show:
+
+- expected logs today
+- submitted logs today
+- missing logs
+- teacher compliance %
+- syllabus completion %
+- classes behind syllabus
+- subjects behind syllabus
+- discipline cases today
+- repeated discipline students
+- repeated inattentive students
+- achievements recorded
+- coordinator verification pending
+- rejected logs pending resubmission
+- open tasks
+- critical alerts
+
+Every KPI must be clickable and drill-down enabled.
+
+====================================================
+PRINCIPAL DASHBOARD
+====================================================
+
+Principal should mainly see:
+
+- rejected logs
+- missing logs
+- repeated teacher non-compliance
+- syllabus delay
+- serious discipline issues
+- coordinator pending verification
+
+Principal can drill down when required.
+
+====================================================
+TEACHER DASHBOARD
+====================================================
+
+Teacher should see:
+
+- assigned classes/subjects
+- syllabus breakup entry
+- submit daily class log
+- own submitted logs
+- rejected logs
+- edit pending/unverified logs
+- OCR/photo upload option
+
+Teachers should only see their own logs.
+
+====================================================
+TASK SYSTEM FOUNDATION
+====================================================
+
+Create internal task system for future AI agents.
+
+Fields:
+- title
+- description
+- module
+- priority
+- assigned_to
+- due_date
+- status
+- created_by
+- source_type:
+  Manual
+  System
+  AI
+
+- related_entity_type
+- related_entity_id
+
+====================================================
+ALERT SYSTEM FOUNDATION
+====================================================
+
+Alerts for:
+- missing logs
+- syllabus behind
+- discipline issue
+- repeated student issue
+- verification pending
+
+Fields:
+- alert_type
+- severity
+- message
+- module
+- related_entity_type
+- related_entity_id
+- status
+- assigned_to
+- created_at
+- resolved_at
+
+====================================================
+OCR / PHOTO UPLOAD
+====================================================
+
+Teachers should upload/click photo of:
+- handwritten diary
+- printed diary
+- register/task sheet
+
+Workflow:
+1. Upload image
+2. OCR reads text
+3. AI/OCR parser extracts fields
+4. Form auto-fills
+5. Teacher reviews/edits
+6. Teacher manually submits
+
+PHASE 1 REQUIREMENTS:
+- build upload UI
+- build backend upload endpoint
+- store image reference
+- create OCR abstraction/service layer
+- add mock OCR extraction
+
+DO NOT:
+- auto-submit OCR data
+- tightly couple to one OCR provider
+
+Keep future-ready for:
+- OpenAI Vision
+- Google Vision
+
+====================================================
+AI SUMMARY PLACEHOLDER
+====================================================
+
+Create AI service layer foundation for future AI agents.
+
+For Phase 1:
+Only placeholders/mock summaries.
+
+Future examples:
+- Daily academic summary
+- Risk summary
+- Action recommendations
+
+Do NOT require paid AI APIs now.
+
+Keep provider/service abstraction ready.
+
+====================================================
+NOTIFICATIONS
+====================================================
+
+Phase 1:
+In-app notifications only.
+
+Future:
+WhatsApp
+Email
+SancharPro integration
+n8n workflows
+
+Keep notification abstraction layer ready.
+
+====================================================
+EXPORTS
+====================================================
+
+Phase 1 exports:
+- Excel export for daily logs
+- Excel export for student event reports
+
+PDF export:
+placeholder only for future.
+
+====================================================
+FUTURE SIDEBAR PLACEHOLDERS ONLY
+====================================================
+
+Create sidebar placeholders for:
+
+1. Admissions CRM
+2. DairyPro ERP
+3. Nursery Operations
+4. Radical Logix ERP Reports
+5. SancharPro WhatsApp Reports
+6. Accounting
+7. Marketing
+8. AI Agents
+
+Do NOT build these modules now.
+
+====================================================
+TECH STACK
+====================================================
+
+Frontend:
+- React
+- TypeScript
+
+Backend:
+- Express/Node.js
+
+Database:
+- PostgreSQL
+
+ORM:
+- Drizzle ORM
+
+Authentication:
+- JWT
+
+Other:
+- File upload support
+- CSV/Excel import support
+- Mobile-first responsive UI
+
+====================================================
+DESIGN PRINCIPLES
+====================================================
+
+- Mobile-first
+- Fast teacher entry
+- Clean professional dashboard
+- Clickable KPI cards
+- Search and filters
+- Error handling
+- Loading states
+- Empty states
+- Audit logs
+- Reliability over fancy animations
+
+====================================================
+HOSTING
+====================================================
+
+Development:
+Replit deployment
+
+Future:
+Hostinger VPS deployment
+
+Architecture must support migration later.
+
+====================================================
+SEED DATA
+====================================================
+
+Seed demo data for:
+- tenants
+- users
+- classes
+- sections
+- subjects
+- teachers
+- coordinators
+- students
+- syllabus entries
+- daily logs
+- alerts
+- tasks
+
+Default Super Admin:
+
+Email:
+admin@springfieldschool.net
+
+Password:
+Admin@12345
+
+Add force-password-change-ready architecture for future.
+
+====================================================
+DATABASE TABLES TO CONSIDER
+====================================================
+
+- tenants
+- branches
+- users
+- roles
+- user_roles
+- classes
+- sections
+- subjects
+- teacher_assignments
+- students
+- student_import_batches
+- syllabus_breakups
+- daily_class_logs
+- student_log_events
+- log_verifications
+- tasks
+- alerts
+- ocr_uploads
+- ai_summary_requests
+- academic_calendar
+- audit_logs
+
+====================================================
+IMPORTANT DEVELOPMENT RULES
+====================================================
+
+- Do NOT overbuild beyond Phase 1
+- Keep architecture future-ready
+- Keep tenant isolation secure
+- Keep code modular
+- Add validations
+- Add error handling
+- Add audit logs
+- Add proper API structure
+- Add clean folder architecture
+- Add environment configuration
+- Ensure app runs without errors
+
+====================================================
+DEVELOPMENT PROCESS
+====================================================
+
+STEP 1:
+Analyze requirements
+
+STEP 2:
+Create:
+- architecture
+- database schema
+- API plan
+- UI/page structure
+- implementation roadmap
+
+STEP 3:
+Show for approval
+
+STEP 4:
+Start coding phase-by-phase
+
+STEP 5:
+Seed demo data
+
+STEP 6:
+Test all roles
+
+STEP 7:
+Debug all errors
+
+STEP 8:
+Provide final run/deployment instructions
+
+====================================================
+FINAL EXPECTED RESULT
+====================================================
+
+A working Springfield AI Command Center Phase 1 where:
+
+1. Admin imports students in bulk
+2. Teacher creates syllabus breakup
+3. Teacher submits Daily Class Log
+4. Teacher tags student behaviour/discipline/achievement
+5. Teacher uploads photo/OCR-assisted form entry
+6. Coordinator verifies logs
+7. Principal monitors exceptions
+8. Director sees drill-down dashboard
+9. Alerts and tasks foundation exists
+10. Future AI-agent-ready architecture exists
+
+Now begin by:
+1. analyzing requirements,
+2. creating architecture,
+3. creating schema,
+4. creating API plan,
+5. creating UI plan,
+6. creating implementation roadmap,
+
+and show them for approval BEFORE coding.
