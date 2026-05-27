@@ -3,20 +3,59 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Springfield AI Command Center API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: roles
+    description: Role management
+  - name: branches
+    description: Branch management
+  - name: classes
+    description: Class management
+  - name: sections
+    description: Section management
+  - name: subjects
+    description: Subject management
+  - name: houses
+    description: House management
+  - name: teacher-assignments
+    description: Teacher assignment management
+  - name: students
+    description: Student management
+  - name: syllabus
+    description: Syllabus breakup management
+  - name: logs
+    description: Daily class log management
+  - name: events
+    description: Student log events
+  - name: ocr
+    description: OCR upload
+  - name: dashboard
+    description: Dashboard analytics
+  - name: tasks
+    description: Task management
+  - name: alerts
+    description: Alert management
+  - name: notifications
+    description: Notification management
+  - name: audit-logs
+    description: Audit log viewer
+  - name: exports
+    description: Excel exports
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +63,1647 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+        "401":
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout and revoke refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile and roles
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Users ─────────────────────────────────────────────────────────────────────
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersListResponse"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}/roles:
+    post:
+      operationId: assignRole
+      tags: [users]
+      summary: Assign role to user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRoleRequest"
+      responses:
+        "201":
+          description: Role assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Branches ──────────────────────────────────────────────────────────────────
+
+  /branches:
+    get:
+      operationId: listBranches
+      tags: [branches]
+      summary: List branches
+      responses:
+        "200":
+          description: Branches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BranchesListResponse"
+    post:
+      operationId: createBranch
+      tags: [branches]
+      summary: Create branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBranchRequest"
+      responses:
+        "201":
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BranchItem"
+
+  # ── Classes ───────────────────────────────────────────────────────────────────
+
+  /classes:
+    get:
+      operationId: listClasses
+      tags: [classes]
+      summary: List classes
+      responses:
+        "200":
+          description: Classes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassesListResponse"
+    post:
+      operationId: createClass
+      tags: [classes]
+      summary: Create class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Class created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassItem"
+
+  /classes/{id}:
+    patch:
+      operationId: updateClass
+      tags: [classes]
+      summary: Update class
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassRequest"
+      responses:
+        "200":
+          description: Updated class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassItem"
+
+  # ── Sections ──────────────────────────────────────────────────────────────────
+
+  /sections:
+    get:
+      operationId: listSections
+      tags: [sections]
+      summary: List sections
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionsListResponse"
+    post:
+      operationId: createSection
+      tags: [sections]
+      summary: Create section
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSectionRequest"
+      responses:
+        "201":
+          description: Section created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionItem"
+
+  /sections/{id}:
+    patch:
+      operationId: updateSection
+      tags: [sections]
+      summary: Update section
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSectionRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionItem"
+
+  # ── Subjects ──────────────────────────────────────────────────────────────────
+
+  /subjects:
+    get:
+      operationId: listSubjects
+      tags: [subjects]
+      summary: List subjects
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subjects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubjectsListResponse"
+    post:
+      operationId: createSubject
+      tags: [subjects]
+      summary: Create subject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubjectRequest"
+      responses:
+        "201":
+          description: Subject created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubjectItem"
+
+  /subjects/{id}:
+    patch:
+      operationId: updateSubject
+      tags: [subjects]
+      summary: Update subject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubjectRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubjectItem"
+
+  # ── Houses ────────────────────────────────────────────────────────────────────
+
+  /houses:
+    get:
+      operationId: listHouses
+      tags: [houses]
+      summary: List houses
+      responses:
+        "200":
+          description: Houses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HousesListResponse"
+    post:
+      operationId: createHouse
+      tags: [houses]
+      summary: Create house
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHouseRequest"
+      responses:
+        "201":
+          description: House created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HouseItem"
+
+  # ── Teacher Assignments ───────────────────────────────────────────────────────
+
+  /teacher-assignments:
+    get:
+      operationId: listTeacherAssignments
+      tags: [teacher-assignments]
+      summary: List teacher assignments
+      parameters:
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: sectionId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Teacher assignments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherAssignmentsListResponse"
+    post:
+      operationId: createTeacherAssignment
+      tags: [teacher-assignments]
+      summary: Create teacher assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeacherAssignmentRequest"
+      responses:
+        "201":
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherAssignmentItem"
+
+  /teacher-assignments/{id}:
+    patch:
+      operationId: updateTeacherAssignment
+      tags: [teacher-assignments]
+      summary: Update teacher assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTeacherAssignmentRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherAssignmentItem"
+    delete:
+      operationId: deleteTeacherAssignment
+      tags: [teacher-assignments]
+      summary: Delete teacher assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Students ──────────────────────────────────────────────────────────────────
+
+  /students:
+    get:
+      operationId: listStudents
+      tags: [students]
+      summary: List students
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: sectionId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Students
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentsListResponse"
+
+  /students/{id}:
+    get:
+      operationId: getStudent
+      tags: [students]
+      summary: Get student detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateStudent
+      tags: [students]
+      summary: Update student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStudentRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentItem"
+
+  /students/import/preview:
+    post:
+      operationId: previewStudentImport
+      tags: [students]
+      summary: Preview CSV/Excel import (no DB write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPreviewRequest"
+      responses:
+        "200":
+          description: Import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreviewResponse"
+
+  /students/import/confirm:
+    post:
+      operationId: confirmStudentImport
+      tags: [students]
+      summary: Confirm and commit student import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirmRequest"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportConfirmResponse"
+
+  /students/{id}/events:
+    get:
+      operationId: getStudentEvents
+      tags: [students]
+      summary: Get all events for a student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Student events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentEventsListResponse"
+
+  # ── Syllabus ──────────────────────────────────────────────────────────────────
+
+  /syllabus:
+    get:
+      operationId: listSyllabus
+      tags: [syllabus]
+      summary: List syllabus breakups
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: sectionId
+          in: query
+          schema:
+            type: integer
+        - name: subjectId
+          in: query
+          schema:
+            type: integer
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: academicYear
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Syllabus list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusListResponse"
+    post:
+      operationId: createSyllabus
+      tags: [syllabus]
+      summary: Create syllabus entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSyllabusRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusItem"
+
+  /syllabus/{id}:
+    get:
+      operationId: getSyllabus
+      tags: [syllabus]
+      summary: Get syllabus entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Syllabus entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusItem"
+    patch:
+      operationId: updateSyllabus
+      tags: [syllabus]
+      summary: Update syllabus entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSyllabusRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusItem"
+
+  /syllabus/{id}/verify:
+    patch:
+      operationId: verifySyllabus
+      tags: [syllabus]
+      summary: Coordinator verifies a syllabus entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifySyllabusRequest"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusItem"
+
+  /syllabus/summary:
+    get:
+      operationId: getSyllabusSummary
+      tags: [syllabus]
+      summary: Syllabus completion summary
+      parameters:
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: subjectId
+          in: query
+          schema:
+            type: integer
+        - name: academicYear
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyllabusSummaryResponse"
+
+  # ── Daily Class Logs ──────────────────────────────────────────────────────────
+
+  /logs:
+    get:
+      operationId: listLogs
+      tags: [logs]
+      summary: List daily class logs
+      parameters:
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: sectionId
+          in: query
+          schema:
+            type: integer
+        - name: subjectId
+          in: query
+          schema:
+            type: integer
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: verificationStatus
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Logs list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogsListResponse"
+    post:
+      operationId: createLog
+      tags: [logs]
+      summary: Create daily class log (draft)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLogRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogItem"
+
+  /logs/{id}:
+    get:
+      operationId: getLog
+      tags: [logs]
+      summary: Get log detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateLog
+      tags: [logs]
+      summary: Update log (before verification)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLogRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogItem"
+
+  /logs/{id}/submit:
+    post:
+      operationId: submitLog
+      tags: [logs]
+      summary: Submit log for verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogItem"
+
+  /logs/{id}/verify:
+    post:
+      operationId: verifyLog
+      tags: [logs]
+      summary: Coordinator verifies a log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyLogRequest"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogItem"
+
+  /logs/{id}/reject:
+    post:
+      operationId: rejectLog
+      tags: [logs]
+      summary: Coordinator rejects a log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectLogRequest"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogItem"
+
+  /logs/missing:
+    get:
+      operationId: getMissingLogs
+      tags: [logs]
+      summary: Get missing logs for a date
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Missing logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MissingLogsResponse"
+
+  /logs/compliance:
+    get:
+      operationId: getCompliance
+      tags: [logs]
+      summary: Teacher compliance report
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compliance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceResponse"
+
+  # ── Student Log Events ────────────────────────────────────────────────────────
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List student log events
+      parameters:
+        - name: studentId
+          in: query
+          schema:
+            type: integer
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsListResponse"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Tag a student event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventItem"
+
+  /events/{id}/resolve:
+    patch:
+      operationId: resolveEvent
+      tags: [events]
+      summary: Resolve a student event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventItem"
+
+  # ── OCR ───────────────────────────────────────────────────────────────────────
+
+  /ocr/upload:
+    post:
+      operationId: uploadOcr
+      tags: [ocr]
+      summary: Upload image for OCR extraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OcrUploadRequest"
+      responses:
+        "201":
+          description: Upload created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcrUploadResponse"
+
+  /ocr/{id}:
+    get:
+      operationId: getOcrResult
+      tags: [ocr]
+      summary: Get OCR result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OCR result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcrUploadResponse"
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+
+  /dashboard/director:
+    get:
+      operationId: getDirectorDashboard
+      tags: [dashboard]
+      summary: Director command center KPIs
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: branchId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Director KPIs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectorDashboardResponse"
+
+  /dashboard/principal:
+    get:
+      operationId: getPrincipalDashboard
+      tags: [dashboard]
+      summary: Principal exception monitoring
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Principal view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrincipalDashboardResponse"
+
+  /dashboard/teacher:
+    get:
+      operationId: getTeacherDashboard
+      tags: [dashboard]
+      summary: Teacher personal dashboard
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Teacher view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherDashboardResponse"
+
+  /dashboard/coordinator:
+    get:
+      operationId: getCoordinatorDashboard
+      tags: [dashboard]
+      summary: Coordinator pending verification view
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Coordinator view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoordinatorDashboardResponse"
+
+  /analytics/compliance:
+    get:
+      operationId: getComplianceAnalytics
+      tags: [dashboard]
+      summary: Teacher compliance drill-down analytics
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+        - name: classId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compliance analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceAnalyticsResponse"
+
+  /analytics/discipline:
+    get:
+      operationId: getDisciplineAnalytics
+      tags: [dashboard]
+      summary: Discipline events drill-down
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: studentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Discipline analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisciplineAnalyticsResponse"
+
+  # ── Tasks ─────────────────────────────────────────────────────────────────────
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          schema:
+            type: integer
+        - name: priority
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TasksListResponse"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskItem"
+
+  /tasks/{id}:
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskItem"
+
+  # ── Alerts ────────────────────────────────────────────────────────────────────
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List alerts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: severity
+          in: query
+          schema:
+            type: string
+        - name: module
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertsListResponse"
+    post:
+      operationId: createAlert
+      tags: [alerts]
+      summary: Create alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAlertRequest"
+      responses:
+        "201":
+          description: Alert created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertItem"
+
+  /alerts/{id}/acknowledge:
+    patch:
+      operationId: acknowledgeAlert
+      tags: [alerts]
+      summary: Acknowledge alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertItem"
+
+  /alerts/{id}/resolve:
+    patch:
+      operationId: resolveAlert
+      tags: [alerts]
+      summary: Resolve alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertItem"
+
+  # ── Notifications ─────────────────────────────────────────────────────────────
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: Get my notifications
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsListResponse"
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: All marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Audit Logs ────────────────────────────────────────────────────────────────
+
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit-logs]
+      summary: List audit logs
+      parameters:
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogsListResponse"
+
+  # ── Exports ───────────────────────────────────────────────────────────────────
+
+  /export/logs:
+    get:
+      operationId: exportLogs
+      tags: [exports]
+      summary: Export daily logs as Excel
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: teacherId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Excel file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /export/events:
+    get:
+      operationId: exportEvents
+      tags: [exports]
+      summary: Export student events as Excel
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: integer
+        - name: eventType
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Excel file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +1711,1574 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+      required: [page, limit, total, totalPages]
+
+    # ── Auth ────────────────────────────────────────────────────────────────────
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required: [accessToken, refreshToken, user]
+
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required: [refreshToken]
+
+    RefreshResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required: [accessToken]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        forcePasswordChange:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserRoleItem"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, email, name, isActive, forcePasswordChange, roles, createdAt]
+
+    UserRoleItem:
+      type: object
+      properties:
+        roleId:
+          type: integer
+        roleName:
+          type: string
+        branchId:
+          type: integer
+          nullable: true
+      required: [roleId, roleName]
+
+    # ── Users ───────────────────────────────────────────────────────────────────
+
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+      required: [email, password, name]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        isActive:
+          type: boolean
+
+    AssignRoleRequest:
+      type: object
+      properties:
+        roleId:
+          type: integer
+        branchId:
+          type: integer
+          nullable: true
+      required: [roleId]
+
+    UsersListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    # ── Branches ─────────────────────────────────────────────────────────────────
+
+    BranchItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        address:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, name, code, isActive, createdAt]
+
+    CreateBranchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        address:
+          type: string
+      required: [name, code]
+
+    BranchesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BranchItem"
+      required: [data]
+
+    # ── Classes ──────────────────────────────────────────────────────────────────
+
+    ClassItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        name:
+          type: string
+        numericLevel:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, name, numericLevel, isActive, createdAt]
+
+    CreateClassRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        name:
+          type: string
+        numericLevel:
+          type: integer
+      required: [branchId, name, numericLevel]
+
+    UpdateClassRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    ClassesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClassItem"
+      required: [data]
+
+    # ── Sections ─────────────────────────────────────────────────────────────────
+
+    SectionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        classId:
+          type: integer
+        name:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, classId, name, isActive, createdAt]
+
+    CreateSectionRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        classId:
+          type: integer
+        name:
+          type: string
+      required: [branchId, classId, name]
+
+    UpdateSectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    SectionsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectionItem"
+      required: [data]
+
+    # ── Subjects ─────────────────────────────────────────────────────────────────
+
+    SubjectItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+          nullable: true
+        applicableClasses:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, name, applicableClasses, isActive, createdAt]
+
+    CreateSubjectRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        applicableClasses:
+          type: array
+          items:
+            type: string
+      required: [branchId, name, applicableClasses]
+
+    UpdateSubjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        applicableClasses:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+
+    SubjectsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubjectItem"
+      required: [data]
+
+    # ── Houses ───────────────────────────────────────────────────────────────────
+
+    HouseItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+      required: [id, tenantId, name, isActive]
+
+    CreateHouseRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required: [name]
+
+    HousesListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/HouseItem"
+      required: [data]
+
+    # ── Teacher Assignments ───────────────────────────────────────────────────────
+
+    TeacherAssignmentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        teacherId:
+          type: integer
+        teacherName:
+          type: string
+        classId:
+          type: integer
+        className:
+          type: string
+        sectionId:
+          type: integer
+        sectionName:
+          type: string
+        subjectId:
+          type: integer
+        subjectName:
+          type: string
+        academicYear:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, teacherId, teacherName, classId, className, sectionId, sectionName, subjectId, subjectName, academicYear, isActive, createdAt]
+
+    CreateTeacherAssignmentRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        teacherId:
+          type: integer
+        classId:
+          type: integer
+        sectionId:
+          type: integer
+        subjectId:
+          type: integer
+        academicYear:
+          type: string
+      required: [branchId, teacherId, classId, sectionId, subjectId, academicYear]
+
+    UpdateTeacherAssignmentRequest:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+
+    TeacherAssignmentsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeacherAssignmentItem"
+      required: [data]
+
+    # ── Students ─────────────────────────────────────────────────────────────────
+
+    StudentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        admissionNo:
+          type: string
+        name:
+          type: string
+        classId:
+          type: integer
+        className:
+          type: string
+        sectionId:
+          type: integer
+        sectionName:
+          type: string
+        rollNo:
+          type: string
+          nullable: true
+        fatherName:
+          type: string
+          nullable: true
+        motherName:
+          type: string
+          nullable: true
+        parentContact:
+          type: string
+          nullable: true
+        houseId:
+          type: integer
+          nullable: true
+        houseName:
+          type: string
+          nullable: true
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, admissionNo, name, classId, className, sectionId, sectionName, status, createdAt]
+
+    StudentDetail:
+      allOf:
+        - $ref: "#/components/schemas/StudentItem"
+        - type: object
+          properties:
+            recentEvents:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventItem"
+          required: [recentEvents]
+
+    UpdateStudentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        classId:
+          type: integer
+        sectionId:
+          type: integer
+        rollNo:
+          type: string
+        fatherName:
+          type: string
+        motherName:
+          type: string
+        parentContact:
+          type: string
+        houseId:
+          type: integer
+        status:
+          type: string
+
+    StudentsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudentItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    ImportPreviewRequest:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        branchId:
+          type: integer
+      required: [rows, branchId]
+
+    ImportPreviewResponse:
+      type: object
+      properties:
+        valid:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportError"
+        totalRows:
+          type: integer
+        validRows:
+          type: integer
+        errorRows:
+          type: integer
+      required: [valid, errors, totalRows, validRows, errorRows]
+
+    ImportError:
+      type: object
+      properties:
+        row:
+          type: integer
+        field:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+      required: [row, message]
+
+    ImportConfirmRequest:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        branchId:
+          type: integer
+        filename:
+          type: string
+      required: [rows, branchId, filename]
+
+    ImportConfirmResponse:
+      type: object
+      properties:
+        batchId:
+          type: integer
+        totalRows:
+          type: integer
+        successRows:
+          type: integer
+        errorRows:
+          type: integer
+        message:
+          type: string
+      required: [batchId, totalRows, successRows, errorRows, message]
+
+    StudentEventsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventItem"
+      required: [data]
+
+    # ── Syllabus ─────────────────────────────────────────────────────────────────
+
+    SyllabusItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        teacherId:
+          type: integer
+        teacherName:
+          type: string
+        classId:
+          type: integer
+        className:
+          type: string
+        sectionId:
+          type: integer
+          nullable: true
+        sectionName:
+          type: string
+          nullable: true
+        subjectId:
+          type: integer
+        subjectName:
+          type: string
+        academicYear:
+          type: string
+        month:
+          type: integer
+        week:
+          type: integer
+          nullable: true
+        chapter:
+          type: string
+        topic:
+          type: string
+        subtopic:
+          type: string
+          nullable: true
+        expectedPeriods:
+          type: integer
+          nullable: true
+        plannedStartDate:
+          type: string
+          nullable: true
+        plannedEndDate:
+          type: string
+          nullable: true
+        learningOutcomes:
+          type: string
+          nullable: true
+        teachingAids:
+          type: string
+          nullable: true
+        activityPlan:
+          type: string
+          nullable: true
+        assessmentPlan:
+          type: string
+          nullable: true
+        status:
+          type: string
+        verifiedBy:
+          type: integer
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, teacherId, teacherName, classId, className, subjectId, subjectName, academicYear, month, chapter, topic, status, createdAt, updatedAt]
+
+    CreateSyllabusRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        classId:
+          type: integer
+        sectionId:
+          type: integer
+        subjectId:
+          type: integer
+        academicYear:
+          type: string
+        month:
+          type: integer
+        week:
+          type: integer
+        chapter:
+          type: string
+        topic:
+          type: string
+        subtopic:
+          type: string
+        expectedPeriods:
+          type: integer
+        plannedStartDate:
+          type: string
+        plannedEndDate:
+          type: string
+        learningOutcomes:
+          type: string
+        teachingAids:
+          type: string
+        activityPlan:
+          type: string
+        assessmentPlan:
+          type: string
+      required: [branchId, classId, subjectId, academicYear, month, chapter, topic]
+
+    UpdateSyllabusRequest:
+      type: object
+      properties:
+        chapter:
+          type: string
+        topic:
+          type: string
+        subtopic:
+          type: string
+        expectedPeriods:
+          type: integer
+        plannedStartDate:
+          type: string
+        plannedEndDate:
+          type: string
+        learningOutcomes:
+          type: string
+        teachingAids:
+          type: string
+        activityPlan:
+          type: string
+        assessmentPlan:
+          type: string
+        status:
+          type: string
+
+    VerifySyllabusRequest:
+      type: object
+      properties:
+        approved:
+          type: boolean
+      required: [approved]
+
+    SyllabusListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyllabusItem"
+      required: [data]
+
+    SyllabusSummaryResponse:
+      type: object
+      properties:
+        totalEntries:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        completionPercent:
+          type: number
+        byClass:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [totalEntries, byStatus, completionPercent, byClass]
+
+    # ── Daily Logs ───────────────────────────────────────────────────────────────
+
+    LogItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        branchId:
+          type: integer
+        teacherId:
+          type: integer
+        teacherName:
+          type: string
+        classId:
+          type: integer
+        className:
+          type: string
+        sectionId:
+          type: integer
+        sectionName:
+          type: string
+        subjectId:
+          type: integer
+        subjectName:
+          type: string
+        date:
+          type: string
+        periodNumber:
+          type: integer
+        syllabusId:
+          type: integer
+          nullable: true
+        topicPlanned:
+          type: string
+          nullable: true
+        topicTaught:
+          type: string
+          nullable: true
+        syllabusStatus:
+          type: string
+          nullable: true
+        teachingMethod:
+          type: string
+          nullable: true
+        homeworkGiven:
+          type: boolean
+        homeworkDetails:
+          type: string
+          nullable: true
+        notebookWorkGiven:
+          type: boolean
+        notebookWorkDetails:
+          type: string
+          nullable: true
+        disciplineIssue:
+          type: boolean
+        disciplineDetails:
+          type: string
+          nullable: true
+        achievementDetails:
+          type: string
+          nullable: true
+        improvementDetails:
+          type: string
+          nullable: true
+        remarks:
+          type: string
+          nullable: true
+        verificationStatus:
+          type: string
+        verifiedBy:
+          type: integer
+          nullable: true
+        verifierName:
+          type: string
+          nullable: true
+        verificationTime:
+          type: string
+          format: date-time
+          nullable: true
+        coordinatorRemarks:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, branchId, teacherId, teacherName, classId, className, sectionId, sectionName, subjectId, subjectName, date, periodNumber, homeworkGiven, notebookWorkGiven, disciplineIssue, verificationStatus, createdAt, updatedAt]
+
+    LogDetail:
+      allOf:
+        - $ref: "#/components/schemas/LogItem"
+        - type: object
+          properties:
+            studentEvents:
+              type: array
+              items:
+                $ref: "#/components/schemas/EventItem"
+          required: [studentEvents]
+
+    CreateLogRequest:
+      type: object
+      properties:
+        branchId:
+          type: integer
+        classId:
+          type: integer
+        sectionId:
+          type: integer
+        subjectId:
+          type: integer
+        date:
+          type: string
+        periodNumber:
+          type: integer
+        syllabusId:
+          type: integer
+        topicPlanned:
+          type: string
+        topicTaught:
+          type: string
+        syllabusStatus:
+          type: string
+        teachingMethod:
+          type: string
+        homeworkGiven:
+          type: boolean
+        homeworkDetails:
+          type: string
+        notebookWorkGiven:
+          type: boolean
+        notebookWorkDetails:
+          type: string
+        disciplineIssue:
+          type: boolean
+        disciplineDetails:
+          type: string
+        achievementDetails:
+          type: string
+        improvementDetails:
+          type: string
+        remarks:
+          type: string
+      required: [branchId, classId, sectionId, subjectId, date, periodNumber]
+
+    UpdateLogRequest:
+      type: object
+      properties:
+        topicPlanned:
+          type: string
+        topicTaught:
+          type: string
+        syllabusStatus:
+          type: string
+        teachingMethod:
+          type: string
+        homeworkGiven:
+          type: boolean
+        homeworkDetails:
+          type: string
+        notebookWorkGiven:
+          type: boolean
+        notebookWorkDetails:
+          type: string
+        disciplineIssue:
+          type: boolean
+        disciplineDetails:
+          type: string
+        achievementDetails:
+          type: string
+        improvementDetails:
+          type: string
+        remarks:
+          type: string
+
+    VerifyLogRequest:
+      type: object
+      properties:
+        coordinatorRemarks:
+          type: string
+
+    RejectLogRequest:
+      type: object
+      properties:
+        coordinatorRemarks:
+          type: string
+      required: [coordinatorRemarks]
+
+    LogsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]
+
+    MissingLogsResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        missing:
+          type: array
+          items:
+            type: object
+            properties:
+              teacherId:
+                type: integer
+              teacherName:
+                type: string
+              classId:
+                type: integer
+              className:
+                type: string
+              sectionId:
+                type: integer
+              sectionName:
+                type: string
+              subjectId:
+                type: integer
+              subjectName:
+                type: string
+            required: [teacherId, teacherName, classId, className, sectionId, sectionName, subjectId, subjectName]
+        totalMissing:
+          type: integer
+      required: [date, missing, totalMissing]
+
+    ComplianceResponse:
+      type: object
+      properties:
+        dateFrom:
+          type: string
+        dateTo:
+          type: string
+        teachers:
+          type: array
+          items:
+            type: object
+            properties:
+              teacherId:
+                type: integer
+              teacherName:
+                type: string
+              expected:
+                type: integer
+              submitted:
+                type: integer
+              compliancePercent:
+                type: number
+            required: [teacherId, teacherName, expected, submitted, compliancePercent]
+      required: [dateFrom, dateTo, teachers]
+
+    # ── Events ───────────────────────────────────────────────────────────────────
+
+    EventItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        dailyLogId:
+          type: integer
+        studentId:
+          type: integer
+        studentName:
+          type: string
+        admissionNo:
+          type: string
+        teacherId:
+          type: integer
+        teacherName:
+          type: string
+        eventType:
+          type: string
+        severity:
+          type: string
+        remarks:
+          type: string
+          nullable: true
+        followUpRequired:
+          type: boolean
+        followUpDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        logDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, dailyLogId, studentId, studentName, admissionNo, teacherId, teacherName, eventType, severity, followUpRequired, status, createdAt, updatedAt]
+
+    CreateEventRequest:
+      type: object
+      properties:
+        dailyLogId:
+          type: integer
+        studentId:
+          type: integer
+        eventType:
+          type: string
+        severity:
+          type: string
+        remarks:
+          type: string
+        followUpRequired:
+          type: boolean
+        followUpDate:
+          type: string
+      required: [dailyLogId, studentId, eventType]
+
+    EventsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventItem"
+      required: [data]
+
+    # ── OCR ──────────────────────────────────────────────────────────────────────
+
+    OcrUploadRequest:
+      type: object
+      properties:
+        filename:
+          type: string
+        storagePath:
+          type: string
+        mimeType:
+          type: string
+      required: [filename, storagePath, mimeType]
+
+    OcrUploadResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+        status:
+          type: string
+        extractedFields:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, filename, status, createdAt]
+
+    # ── Dashboard ─────────────────────────────────────────────────────────────────
+
+    DirectorDashboardResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        expectedLogsToday:
+          type: integer
+        submittedLogsToday:
+          type: integer
+        missingLogsToday:
+          type: integer
+        teacherCompliancePercent:
+          type: number
+        syllabusCompletionPercent:
+          type: number
+        classesBehindSyllabus:
+          type: integer
+        subjectsBehindSyllabus:
+          type: integer
+        disciplineCasesToday:
+          type: integer
+        repeatedDisciplineStudents:
+          type: integer
+        repeatedInattentiveStudents:
+          type: integer
+        achievementsRecorded:
+          type: integer
+        coordinatorVerificationPending:
+          type: integer
+        rejectedLogsPendingResubmission:
+          type: integer
+        openTasks:
+          type: integer
+        criticalAlerts:
+          type: integer
+      required: [date, expectedLogsToday, submittedLogsToday, missingLogsToday, teacherCompliancePercent, syllabusCompletionPercent, classesBehindSyllabus, subjectsBehindSyllabus, disciplineCasesToday, repeatedDisciplineStudents, repeatedInattentiveStudents, achievementsRecorded, coordinatorVerificationPending, rejectedLogsPendingResubmission, openTasks, criticalAlerts]
+
+    PrincipalDashboardResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        rejectedLogs:
+          type: integer
+        missingLogs:
+          type: integer
+        repeatedNonComplianceTeachers:
+          type: integer
+        syllabusDelayedSubjects:
+          type: integer
+        seriousDisciplineIssues:
+          type: integer
+        coordinatorPendingVerifications:
+          type: integer
+      required: [date, rejectedLogs, missingLogs, repeatedNonComplianceTeachers, syllabusDelayedSubjects, seriousDisciplineIssues, coordinatorPendingVerifications]
+
+    TeacherDashboardResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        myAssignments:
+          type: integer
+        myLogsToday:
+          type: integer
+        myPendingLogs:
+          type: integer
+        myRejectedLogs:
+          type: integer
+        myUnverifiedLogs:
+          type: integer
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeacherAssignmentItem"
+      required: [date, myAssignments, myLogsToday, myPendingLogs, myRejectedLogs, myUnverifiedLogs, assignments]
+
+    CoordinatorDashboardResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        pendingVerifications:
+          type: integer
+        verifiedToday:
+          type: integer
+        rejectedToday:
+          type: integer
+        pendingLogs:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogItem"
+      required: [date, pendingVerifications, verifiedToday, rejectedToday, pendingLogs]
+
+    ComplianceAnalyticsResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          additionalProperties: true
+        byTeacher:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        byClass:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [summary, byTeacher, byClass]
+
+    DisciplineAnalyticsResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          additionalProperties: true
+        byClass:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        repeatedStudents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [summary, byClass, repeatedStudents]
+
+    # ── Tasks ─────────────────────────────────────────────────────────────────────
+
+    TaskItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        module:
+          type: string
+          nullable: true
+        priority:
+          type: string
+        assignedTo:
+          type: integer
+          nullable: true
+        assignedToName:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        createdBy:
+          type: integer
+          nullable: true
+        createdByName:
+          type: string
+          nullable: true
+        sourceType:
+          type: string
+        relatedEntityType:
+          type: string
+          nullable: true
+        relatedEntityId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, title, priority, status, sourceType, createdAt, updatedAt]
+
+    CreateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        module:
+          type: string
+        priority:
+          type: string
+        assignedTo:
+          type: integer
+        dueDate:
+          type: string
+        relatedEntityType:
+          type: string
+        relatedEntityId:
+          type: string
+      required: [title]
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+        assignedTo:
+          type: integer
+        dueDate:
+          type: string
+        status:
+          type: string
+
+    TasksListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskItem"
+      required: [data]
+
+    # ── Alerts ─────────────────────────────────────────────────────────────────────
+
+    AlertItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        alertType:
+          type: string
+        severity:
+          type: string
+        message:
+          type: string
+        module:
+          type: string
+          nullable: true
+        relatedEntityType:
+          type: string
+          nullable: true
+        relatedEntityId:
+          type: string
+          nullable: true
+        status:
+          type: string
+        assignedTo:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, tenantId, alertType, severity, message, status, createdAt]
+
+    CreateAlertRequest:
+      type: object
+      properties:
+        alertType:
+          type: string
+        severity:
+          type: string
+        message:
+          type: string
+        module:
+          type: string
+        relatedEntityType:
+          type: string
+        relatedEntityId:
+          type: string
+        assignedTo:
+          type: integer
+      required: [alertType, severity, message]
+
+    AlertsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertItem"
+      required: [data]
+
+    # ── Notifications ─────────────────────────────────────────────────────────────
+
+    NotificationItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        type:
+          type: string
+        isRead:
+          type: boolean
+        relatedEntityType:
+          type: string
+          nullable: true
+        relatedEntityId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, userId, title, body, type, isRead, createdAt]
+
+    NotificationsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationItem"
+        unreadCount:
+          type: integer
+      required: [data, unreadCount]
+
+    # ── Audit Logs ────────────────────────────────────────────────────────────────
+
+    AuditLogItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        userId:
+          type: integer
+          nullable: true
+        userName:
+          type: string
+          nullable: true
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          nullable: true
+        oldValue:
+          type: object
+          nullable: true
+          additionalProperties: true
+        newValue:
+          type: object
+          nullable: true
+          additionalProperties: true
+        ipAddress:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, tenantId, action, entityType, createdAt]
+
+    AuditLogsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+      required: [data, pagination]

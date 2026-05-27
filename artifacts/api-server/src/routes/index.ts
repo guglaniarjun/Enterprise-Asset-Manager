@@ -1,8 +1,46 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import authRouter from "./auth";
+import usersRouter from "./users";
+import branchesRouter from "./branches";
+import classesRouter from "./classes";
+import sectionsRouter from "./sections";
+import subjectsRouter from "./subjects";
+import housesRouter from "./houses";
+import teacherAssignmentsRouter from "./teacherAssignments";
+import studentsRouter from "./students";
+import syllabusRouter from "./syllabus";
+import logsRouter from "./logs";
+import eventsRouter from "./events";
+import ocrRouter from "./ocr";
+import dashboardRouter from "./dashboard";
+import tasksRouter from "./tasks";
+import alertsRouter from "./alerts";
+import notificationsRouter from "./notifications";
+import auditLogsRouter from "./auditLogs";
+import exportsRouter from "./exports";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
+router.use(usersRouter);
+router.use(branchesRouter);
+router.use(classesRouter);
+router.use(sectionsRouter);
+router.use(subjectsRouter);
+router.use(housesRouter);
+router.use(teacherAssignmentsRouter);
+router.use(studentsRouter);
+router.use(syllabusRouter);
+router.use(logsRouter);
+router.use(eventsRouter);
+router.use(ocrRouter);
+router.use(dashboardRouter);
+router.use(tasksRouter);
+router.use(alertsRouter);
+router.use(notificationsRouter);
+router.use(auditLogsRouter);
+router.use(exportsRouter);
 
 export default router;

@@ -1,0 +1,80 @@
+import { Router, type IRouter } from "express";
+import { eq, and, gte, lte } from "drizzle-orm";
+import { db, studentLogEventsTable, studentsTable, usersTable, dailyClassLogsTable } from "@workspace/db";
+import { authenticate } from "../middlewares/authenticate";
+
+const router: IRouter = Router();
+router.use(authenticate);
+
+async function enrich(e: typeof studentLogEventsTable.$inferSelect) {
+  const [stu] = await db.select({ name: studentsTable.name, admissionNo: studentsTable.admissionNo }).from(studentsTable).where(eq(studentsTable.id, e.studentId)).limit(1);
+  const [teacher] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, e.teacherId)).limit(1);
+  const [log] = await db.select({ date: dailyClassLogsTable.date }).from(dailyClassLogsTable).where(eq(dailyClassLogsTable.id, e.dailyLogId)).limit(1);
+  return { ...e, studentName: stu?.name ?? "", admissionNo: stu?.admissionNo ?? "", teacherName: teacher?.name ?? "", logDate: log?.date ?? null };
+}
+
+router.get("/events", async (req, res): Promise<void> => {
+  const tenantId = req.user!.tenantId;
+  const studentId = req.query.studentId ? parseInt(String(req.query.studentId), 10) : null;
+  const eventType = String(req.query.eventType ?? "");
+  const status = String(req.query.status ?? "");
+  const dateFrom = String(req.query.dateFrom ?? "");
+  const dateTo = String(req.query.dateTo ?? "");
+
+  let rows = await db.select().from(studentLogEventsTable).where(eq(studentLogEventsTable.tenantId, tenantId)).orderBy(studentLogEventsTable.createdAt);
+  if (studentId) rows = rows.filter((r) => r.studentId === studentId);
+  if (eventType) rows = rows.filter((r) => r.eventType === eventType);
+  if (status) rows = rows.filter((r) => r.status === status);
+
+  if (dateFrom || dateTo) {
+    const logIds = new Set<number>();
+    const logConditions = [];
+    if (dateFrom) logConditions.push(gte(dailyClassLogsTable.date, dateFrom));
+    if (dateTo) logConditions.push(lte(dailyClassLogsTable.date, dateTo));
+    const logs = await db.select({ id: dailyClassLogsTable.id }).from(dailyClassLogsTable).where(and(...logConditions));
+    logs.forEach((l) => logIds.add(l.id));
+    rows = rows.filter((r) => logIds.has(r.dailyLogId));
+  }
+
+  const enriched = await Promise.all(rows.map(enrich));
+  res.json({ data: enriched });
+});
+
+router.post("/events", async (req, res): Promise<void> => {
+  const { dailyLogId, studentId, eventType, severity, remarks, followUpRequired, followUpDate } = req.body;
+  if (!dailyLogId || !studentId || !eventType) {
+    res.status(400).json({ error: "dailyLogId, studentId, eventType required" });
+    return;
+  }
+  const tenantId = req.user!.tenantId;
+  const teacherId = req.user!.userId;
+
+  const [log] = await db.select().from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, dailyLogId), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
+  if (!log) {
+    res.status(404).json({ error: "Daily log not found" });
+    return;
+  }
+
+  const [event] = await db.insert(studentLogEventsTable).values({
+    tenantId, dailyLogId, studentId, teacherId, eventType,
+    severity: severity ?? "Low", remarks: remarks ?? null,
+    followUpRequired: followUpRequired ?? false, followUpDate: followUpDate ?? null,
+    status: "Open",
+  }).returning();
+
+  res.status(201).json(await enrich(event));
+});
+
+router.patch("/events/:id/resolve", async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const tenantId = req.user!.tenantId;
+  const [existing] = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.id, id), eq(studentLogEventsTable.tenantId, tenantId))).limit(1);
+  if (!existing) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+  const [updated] = await db.update(studentLogEventsTable).set({ status: "Resolved" }).where(eq(studentLogEventsTable.id, id)).returning();
+  res.json(await enrich(updated));
+});
+
+export default router;
