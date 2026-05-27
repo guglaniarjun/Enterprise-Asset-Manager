@@ -1,0 +1,110 @@
+Phase A approved.
+
+Proceed with Phase B only.
+
+Do not touch Phase C or D yet.
+Do not build AI/OCR advanced features yet.
+Do not expand to dairy, nursery, CRM, SancharPro, Radical Logix, accounting, or marketing.
+
+PHASE B OBJECTIVE:
+Build the operational data-entry and workflow layer for Academic Monitoring.
+
+Scope:
+
+1. Student Bulk Import UI
+- Build CSV/Excel upload screen
+- Show import preview
+- Validate duplicate admission_no
+- Validate missing required fields
+- Validate class/section mapping
+- Show error rows before final import
+- Allow final confirm import
+- Store import batch record
+- Make it tenant-safe
+
+2. Syllabus Breakup UI
+- Teacher can create syllabus breakup
+- Coordinator can approve/reject syllabus breakup
+- Fields:
+  class, section optional, subject, month, week, chapter, topic, subtopic, expected_periods, planned_start_date, planned_end_date, learning_outcomes, teaching_aids, activity_plan, assessment_plan, status
+- Add filters by class, subject, teacher, status
+- Allow teacher to edit before approval
+- Approved syllabus should be selectable in Daily Class Log
+
+3. Daily Class Log Teacher Form
+- Teacher can submit period-wise daily log
+- Form should be mobile-first and fast
+- Teacher should select from assigned class/section/subject only
+- Allow linking to approved syllabus breakup
+- Auto-fill topic_planned if syllabus breakup selected
+- Capture:
+  date, period_number, topic_planned, topic_actually_taught, syllabus_status, teaching_method, homework_given, homework_details, notebook_work_given, notebook_work_details, absent_students, inattentive_students, discipline_issue, discipline_details, achievement_students, achievement_details, improvement_students, improvement_details, students_needing_counselling, remarks
+- Teacher can edit before verification
+- Teacher can correct rejected logs and resubmit
+- Verified logs cannot be edited
+
+4. Student Event Tagging
+- Inside Daily Class Log, teacher can tag individual students
+- Event types:
+  Absent, Inattentive, Discipline Issue, Homework Defaulter, Notebook Incomplete, Good Performance, Achievement, Improvement Shown, Needs Counselling, Health Concern, Emotional Concern, Leadership Shown
+- Each event stores:
+  student_id, daily_log_id, event_type, severity, remarks, follow_up_required, follow_up_date, status
+- Student tagging is optional except if discipline_issue = Yes, then require at least one discipline-related student event where applicable.
+- Student selector should filter by selected class/section.
+
+5. Coordinator Verification Screen
+- Coordinator sees pending logs for assigned classes
+- Coordinator can view full log + student events
+- Coordinator can verify or reject with remarks
+- Rejection returns log to teacher for correction
+- Show rejected logs separately
+- Show pending verification count
+
+6. In-App Notifications
+- Notify teacher when log is rejected
+- Notify coordinator when new logs are submitted
+- Notify teacher when syllabus breakup is rejected
+- Notify coordinator when syllabus breakup submitted
+
+7. Maintain Phase A Security
+- All new UI/API calls must respect tenant isolation
+- All create/update/delete actions must write audit logs
+- Do not break existing endpoints
+- Keep RBAC applied
+
+8. UI Rules
+- Mobile-first
+- Clean forms
+- Fast teacher entry
+- Use search/dropdowns
+- Use save/submit states clearly
+- Add empty states and loading states
+- Every table row should open detail view
+- Preserve drill-down philosophy
+
+9. Testing Required
+After implementation, run:
+- typecheck
+- build
+- authenticated smoke tests
+- role-based test:
+  Teacher can create/edit own logs only
+  Teacher cannot access other teacher logs
+  Coordinator can verify assigned logs
+  Director/Principal can view summaries
+  Tenant isolation remains intact
+
+10. Final Report
+After Phase B, report:
+- files changed
+- screens added
+- API endpoints added/changed
+- database changes
+- RBAC rules applied
+- audit actions added
+- tests passed/failed
+- known limitations
+
+Important:
+Do Phase B only.
+Stop after Phase B and wait for my approval before Phase C.

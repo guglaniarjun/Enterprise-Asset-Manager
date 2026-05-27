@@ -6,6 +6,8 @@ import { requireTenant } from "../middlewares/requireTenant";
 import { requireRoles } from "../middlewares/requireRoles";
 import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
+import { sendInAppNotification, notifyRolesInBranch } from "../lib/notify";
+import { ROLES } from "../middlewares/requireRoles";
 
 const router: IRouter = Router();
 router.use(authenticate);
@@ -89,6 +91,12 @@ router.post("/syllabus", requireRoles(...RBAC.ALL_STAFF), async (req, res): Prom
   }).returning();
 
   await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "syllabus", entityId: entry.id, newValue: entry, ipAddress: req.ip });
+  await notifyRolesInBranch({
+    tenantId, branchId: entry.branchId, roleNames: [ROLES.COORDINATOR, ROLES.PRINCIPAL],
+    title: "New syllabus to review",
+    body: `${req.user!.email} submitted a syllabus breakup for ${chapter}.`,
+    type: "info", relatedEntityType: "syllabus", relatedEntityId: entry.id,
+  });
   const enriched = await enrich(entry);
   res.status(201).json(enriched);
 });
@@ -136,6 +144,15 @@ router.patch("/syllabus/:id/verify", requireRoles(...RBAC.LEADERSHIP_AND_COORDIN
     verifiedAt: approved ? new Date() : null,
   }).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).returning();
   await writeAuditLog({ user: req.user, tenantId, action: approved ? "VERIFY" : "REJECT", entityType: "syllabus", entityId: id, oldValue: existing, newValue: { approved }, ipAddress: req.ip });
+  await sendInAppNotification({
+    tenantId, userId: existing.teacherId,
+    title: approved ? "Syllabus approved" : "Syllabus rejected",
+    body: approved
+      ? `Your syllabus breakup for ${existing.chapter} has been approved.`
+      : `Your syllabus breakup for ${existing.chapter} was rejected. Please revise and resubmit.`,
+    type: approved ? "success" : "warning",
+    relatedEntityType: "syllabus", relatedEntityId: id,
+  });
   res.json(await enrich(updated));
 });
 

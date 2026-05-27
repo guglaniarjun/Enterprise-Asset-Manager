@@ -4,9 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 
 export default function StudentsList() {
   const [page, setPage] = useState(1);
@@ -22,7 +23,9 @@ export default function StudentsList() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Students Directory</h1>
-        <Button>Import Students</Button>
+        <Link href="/admin/students/import">
+          <Button><Upload className="w-4 h-4 mr-2" /> Import Students</Button>
+        </Link>
       </div>
 
       <Card>

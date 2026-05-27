@@ -1,8 +1,14 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
-import { useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
-import { Bell, User, LogOut, Menu } from "lucide-react";
+import {
+  useListNotifications,
+  useMarkNotificationRead,
+  getListNotificationsQueryKey,
+  type NotificationItem,
+} from "@workspace/api-client-react";
+import { Bell, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -35,12 +41,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     user?.roles.some(r => item.roles.includes(r.roleName))
   );
 
+  const qc = useQueryClient();
   const { data: notificationsData } = useListNotifications({ unreadOnly: true }, {
     query: {
       enabled: !!user,
       queryKey: getListNotificationsQueryKey({ unreadOnly: true }),
     }
   });
+  const markRead = useMarkNotificationRead();
+
+  const handleNotifClick = (n: NotificationItem) => {
+    if (!n.isRead) {
+      markRead.mutate({ id: n.id }, {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: getListNotificationsQueryKey({ unreadOnly: true }) });
+          qc.invalidateQueries({ queryKey: getListNotificationsQueryKey({}) });
+        },
+      });
+    }
+    if (n.relatedEntityType === "daily_log" && n.relatedEntityId) {
+      setLocation(`/logs/${n.relatedEntityId}`);
+    } else if (n.relatedEntityType === "syllabus") {
+      setLocation("/syllabus");
+    } else {
+      setLocation("/notifications");
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -90,7 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenuSeparator />
                 {notificationsData?.data?.length ? (
                   notificationsData.data.slice(0, 5).map(n => (
-                    <DropdownMenuItem key={n.id} className="flex flex-col items-start p-3">
+                    <DropdownMenuItem key={n.id} className="flex flex-col items-start p-3 cursor-pointer" onClick={() => handleNotifClick(n)}>
                       <span className="font-medium text-sm">{n.title}</span>
                       <span className="text-xs text-gray-500">{n.body}</span>
                     </DropdownMenuItem>
@@ -99,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="justify-center text-primary cursor-pointer">
+                <DropdownMenuItem className="justify-center text-primary cursor-pointer" onClick={() => setLocation("/notifications")}>
                   View all
                 </DropdownMenuItem>
               </DropdownMenuContent>

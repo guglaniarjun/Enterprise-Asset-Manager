@@ -26,9 +26,12 @@ import StudentDetail from "./pages/StudentDetail";
 import TasksList from "./pages/TasksList";
 import AlertsList from "./pages/AlertsList";
 import Syllabus from "./pages/Syllabus";
+import SyllabusForm from "./pages/SyllabusForm";
 import SyllabusSummary from "./pages/SyllabusSummary";
 import EventsList from "./pages/EventsList";
+import NotificationsList from "./pages/NotificationsList";
 import UsersList from "./pages/admin/UsersList";
+import StudentImport from "./pages/admin/StudentImport";
 import ClassesList from "./pages/admin/ClassesList";
 import SubjectsList from "./pages/admin/SubjectsList";
 import TeacherAssignments from "./pages/admin/TeacherAssignments";
@@ -62,6 +65,7 @@ function AuthenticatedApp() {
         <Route path="/logs/submit" component={SubmitLog} />
         <Route path="/logs/missing" component={MissingLogs} />
         <Route path="/logs/compliance" component={Compliance} />
+        <Route path="/logs/:id/edit" component={SubmitLog} />
         <Route path="/logs/:id" component={LogDetail} />
         <Route path="/logs" component={LogsList} />
         
@@ -70,10 +74,14 @@ function AuthenticatedApp() {
         
         <Route path="/tasks" component={TasksList} />
         <Route path="/alerts" component={AlertsList} />
-        <Route path="/syllabus" component={Syllabus} />
+        <Route path="/syllabus/new" component={SyllabusForm} />
         <Route path="/syllabus/summary" component={SyllabusSummary} />
+        <Route path="/syllabus/:id/edit" component={SyllabusForm} />
+        <Route path="/syllabus" component={Syllabus} />
         <Route path="/events" component={EventsList} />
+        <Route path="/notifications" component={NotificationsList} />
         
+        <Route path="/admin/students/import" component={StudentImport} />
         <Route path="/admin/users" component={UsersList} />
         <Route path="/admin/classes" component={ClassesList} />
         <Route path="/admin/subjects" component={SubjectsList} />

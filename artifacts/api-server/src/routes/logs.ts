@@ -6,7 +6,7 @@ import { requireTenant } from "../middlewares/requireTenant";
 import { requireRoles, ROLES } from "../middlewares/requireRoles";
 import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
-import { sendInAppNotification } from "../lib/notify";
+import { sendInAppNotification, notifyRolesInBranch } from "../lib/notify";
 
 const router: IRouter = Router();
 router.use(authenticate);
@@ -138,6 +138,12 @@ router.post("/logs", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<
   }).returning();
 
   await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "daily_log", entityId: log.id, newValue: log, ipAddress: req.ip });
+  await notifyRolesInBranch({
+    tenantId, branchId: log.branchId, roleNames: [ROLES.COORDINATOR, ROLES.PRINCIPAL],
+    title: "New log to verify",
+    body: `${req.user!.email} submitted a class log for Period ${log.periodNumber}.`,
+    type: "info", relatedEntityType: "daily_log", relatedEntityId: log.id,
+  });
   res.status(201).json(await enrichLog(log));
 });
 
@@ -202,6 +208,12 @@ router.post("/logs/:id/submit", requireRoles(...RBAC.ALL_STAFF), async (req, res
   }
   const [updated] = await db.update(dailyClassLogsTable).set({ submittedAt: new Date(), verificationStatus: "Pending" }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
   await writeAuditLog({ user: req.user, tenantId, action: "SUBMIT", entityType: "daily_log", entityId: id, ipAddress: req.ip });
+  await notifyRolesInBranch({
+    tenantId, branchId: existing.branchId, roleNames: [ROLES.COORDINATOR, ROLES.PRINCIPAL],
+    title: "New log to verify",
+    body: `${req.user!.email} submitted a class log for Period ${existing.periodNumber}.`,
+    type: "info", relatedEntityType: "daily_log", relatedEntityId: id,
+  });
   res.json(await enrichLog(updated));
 });
 
