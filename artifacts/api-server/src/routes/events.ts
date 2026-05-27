@@ -6,6 +6,7 @@ import { requireTenant } from "../middlewares/requireTenant";
 import { requireRoles } from "../middlewares/requireRoles";
 import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
+import { isPrivileged, isCoordinator } from "../lib/authzScope";
 
 const router: IRouter = Router();
 router.use(authenticate);
@@ -60,9 +61,27 @@ router.post("/events", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promis
     return;
   }
 
-  const [student] = await db.select({ id: studentsTable.id }).from(studentsTable).where(and(eq(studentsTable.id, studentId), eq(studentsTable.tenantId, tenantId))).limit(1);
+  // Authorization: only privileged roles, coordinators, or the log's owner teacher may attach events.
+  const privileged = isPrivileged(req) || isCoordinator(req);
+  if (!privileged && log.teacherId !== teacherId) {
+    res.status(403).json({ error: "Cannot add events to another teacher's log" });
+    return;
+  }
+  // Teachers can only add events while the log is still being authored (Draft or Rejected).
+  if (!privileged && log.verificationStatus !== "Draft" && log.verificationStatus !== "Rejected") {
+    res.status(409).json({ error: `Cannot add events to a log in state '${log.verificationStatus}'` });
+    return;
+  }
+
+  // Student must exist in same tenant AND same class+section as the log
+  // (prevents cross-class / cross-section injection).
+  const [student] = await db.select().from(studentsTable).where(and(eq(studentsTable.id, studentId), eq(studentsTable.tenantId, tenantId))).limit(1);
   if (!student) {
     res.status(404).json({ error: "Student not found" });
+    return;
+  }
+  if (student.classId !== log.classId || student.sectionId !== log.sectionId) {
+    res.status(400).json({ error: "Student is not in the class/section of this log" });
     return;
   }
 

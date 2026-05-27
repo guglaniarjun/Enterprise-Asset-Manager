@@ -8,6 +8,7 @@ import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
 import { sendInAppNotification, notifyRolesInBranch } from "../lib/notify";
 import { ROLES } from "../middlewares/requireRoles";
+import { isPrivileged } from "../lib/authzScope";
 
 const router: IRouter = Router();
 router.use(authenticate);
@@ -120,8 +121,23 @@ router.patch("/syllabus/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res):
     res.status(404).json({ error: "Not found" });
     return;
   }
+  // Authorization: teachers can edit only their own entries, and only before they are approved/completed.
+  // Privileged roles (Super/Tenant Admin, Director, Principal) can edit anything.
+  const privileged = isPrivileged(req);
+  if (!privileged) {
+    if (existing.teacherId !== req.user!.userId) {
+      res.status(403).json({ error: "Cannot edit another teacher's syllabus entry" });
+      return;
+    }
+    if (existing.status === "Completed") {
+      res.status(403).json({ error: "Cannot edit an approved syllabus entry" });
+      return;
+    }
+  }
   const updates: Record<string, unknown> = {};
-  const fields = ["chapter", "topic", "subtopic", "expectedPeriods", "plannedStartDate", "plannedEndDate", "learningOutcomes", "teachingAids", "activityPlan", "assessmentPlan", "status"];
+  // 'status' is intentionally excluded — it is managed only by the /verify endpoint
+  // so verifiedBy/verifiedAt stay consistent. Privileged users approve via /verify too.
+  const fields = ["chapter", "topic", "subtopic", "expectedPeriods", "plannedStartDate", "plannedEndDate", "learningOutcomes", "teachingAids", "activityPlan", "assessmentPlan"];
   for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [updated] = await db.update(syllabusBreakupsTable).set(updates as any).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).returning();
@@ -143,7 +159,7 @@ router.patch("/syllabus/:id/verify", requireRoles(...RBAC.LEADERSHIP_AND_COORDIN
     verifiedBy: approved ? req.user!.userId : null,
     verifiedAt: approved ? new Date() : null,
   }).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).returning();
-  await writeAuditLog({ user: req.user, tenantId, action: approved ? "VERIFY" : "REJECT", entityType: "syllabus", entityId: id, oldValue: existing, newValue: { approved }, ipAddress: req.ip });
+  await writeAuditLog({ user: req.user, tenantId, action: approved ? "APPROVE" : "REJECT", entityType: "syllabus", entityId: id, oldValue: existing, newValue: { approved }, ipAddress: req.ip });
   await sendInAppNotification({
     tenantId, userId: existing.teacherId,
     title: approved ? "Syllabus approved" : "Syllabus rejected",

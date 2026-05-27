@@ -1,0 +1,103 @@
+Phase B functionally approved, but do NOT proceed to Phase C yet.
+
+First complete Phase B.1 Hardening.
+
+Objective:
+Fix the security, authorization, validation, and workflow-state gaps identified in the Phase B final report.
+
+Scope:
+
+1. Fix GET /logs/:id authorization
+- Teachers can read only their own logs.
+- Coordinators can read logs only for assigned classes/sections/subjects.
+- Principal, Director, Tenant Admin, Super Admin can read according to RBAC.
+- Tenant isolation must remain enforced.
+
+2. Fix POST /events authorization
+- User must be allowed to access the target daily_log.
+- Teacher can add events only to their own log before verification.
+- Ensure student_id belongs to the same tenant and same class/section as the log.
+- Prevent cross-tenant or mismatched student/event injection.
+
+3. Fix PATCH /syllabus/:id authorization
+- Teacher can edit only their own syllabus entries before approval.
+- Coordinator can approve/reject assigned syllabus entries.
+- Principal/Director/Tenant Admin/Super Admin retain higher permissions as per RBAC.
+- Prevent any staff member from editing any syllabus in the tenant.
+
+4. Fix POST /students/import/confirm backend validation
+- Do not trust client-supplied validated rows blindly.
+- Revalidate all rows on backend confirm:
+  - required fields
+  - duplicate admission_no within file
+  - duplicate admission_no in database
+  - valid class mapping
+  - valid section mapping
+  - tenant_id isolation
+  - branch_id validity
+- Reject invalid rows safely.
+- Return clear error details.
+
+5. Fix Daily Log state machine
+Current issue:
+Backend creates logs in Pending immediately, so coordinator can verify before teacher submits.
+
+Required behavior:
+- Draft: log created but not submitted
+- Submitted/Pending Verification: teacher has submitted
+- Verified
+- Rejected
+
+Rules:
+- Coordinator cannot verify Draft logs.
+- Teacher can edit Draft and Rejected logs.
+- Teacher can submit Draft or Rejected logs.
+- Verified logs cannot be edited unless reopened by privileged role.
+- Rejected logs require teacher correction and resubmission.
+- submittedAt must be set only when teacher submits.
+
+6. Update frontend if needed
+- Show Draft / Submitted / Verified / Rejected states clearly.
+- Hide Verify/Reject buttons for Draft logs.
+- Show Submit button for Draft and Rejected logs.
+- Ensure teacher workflow is clear.
+
+7. Audit logs
+Add audit entries for:
+- draft created
+- log submitted
+- log verified
+- log rejected
+- syllabus edited
+- syllabus approved/rejected
+- import confirmed/rejected/partially failed
+- event created
+
+8. Tests
+Run:
+- api-server typecheck
+- web typecheck
+- authenticated smoke tests
+- authorization tests/manual checks:
+  a. Teacher cannot read another teacher’s log.
+  b. Teacher cannot add event to another teacher’s log.
+  c. Teacher cannot tag a student from wrong class/section.
+  d. Coordinator cannot verify Draft log.
+  e. Teacher can submit Draft log.
+  f. Teacher can resubmit Rejected log.
+  g. Verified log cannot be edited.
+  h. Student import confirm revalidates backend-side.
+
+9. Final Report
+Report:
+- files changed
+- endpoint fixes made
+- state machine changes
+- frontend changes
+- audit events added
+- test results
+- remaining risks
+
+Important:
+Do Phase B.1 only.
+Do not start Phase C until I approve.

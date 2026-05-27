@@ -271,13 +271,13 @@ export default function SubmitLog() {
           }
         }
         if (failed.length > 0) {
-          toast({ title: "Log saved — some events failed", description: failed.join("; "), variant: "destructive" });
+          toast({ title: "Draft saved — some events failed", description: failed.join("; "), variant: "destructive" });
         } else {
-          toast({ title: "Log submitted", description: events.length ? `${events.length} student event(s) tagged.` : undefined });
+          toast({ title: "Draft saved", description: `Open the log and click "Submit for verification" when ready.${events.length ? ` ${events.length} student event(s) tagged.` : ""}` });
         }
-        setLocation("/dashboard/teacher");
+        setLocation(`/logs/${created.id}`);
       },
-      onError: (err: unknown) => toast({ title: "Submit failed", description: (err as Error).message, variant: "destructive" }),
+      onError: (err: unknown) => toast({ title: "Save failed", description: (err as Error).message, variant: "destructive" }),
     });
   }
 
@@ -287,7 +287,7 @@ export default function SubmitLog() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">
-          {editId ? "Edit daily log" : "Submit daily log"}
+          {editId ? "Edit daily log" : "New daily log"}
         </h1>
         {editId && existing?.verificationStatus === "Rejected" && existing.coordinatorRemarks && (
           <div className="flex items-center gap-2 text-sm text-orange-700 bg-orange-50 border border-orange-200 px-3 py-2 rounded-md">
@@ -499,7 +499,7 @@ export default function SubmitLog() {
 
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setLocation(editId ? `/logs/${editId}` : "/dashboard/teacher")}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>{editId ? "Save changes" : "Submit log"}</Button>
+                <Button type="submit" disabled={isPending}>{editId ? "Save changes" : "Save draft"}</Button>
               </div>
             </form>
           </Form>

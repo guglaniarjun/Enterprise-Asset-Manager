@@ -55,21 +55,36 @@ router.get("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL)
   res.status(405).json({ error: "Use POST" });
 });
 
-router.post("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL), async (req, res): Promise<void> => {
-  const { rows, branchId } = req.body;
-  if (!rows || !Array.isArray(rows) || !branchId) {
-    res.status(400).json({ error: "rows and branchId required" });
-    return;
-  }
-  const tenantId = req.user!.tenantId;
+type RawRow = Record<string, unknown>;
+type ValidRow = {
+  admissionNo: string;
+  name: string;
+  classId: number;
+  sectionId: number;
+  rollNo: string | null;
+  fatherName: string | null;
+  motherName: string | null;
+  parentContact: string | null;
+  houseId: number | null;
+  status: "active";
+};
+type ImportError = { row: number; field?: string; message: string; data: RawRow };
 
-  const valid: Record<string, unknown>[] = [];
-  const errors: { row: number; field?: string; message: string; data: Record<string, unknown> }[] = [];
-
+async function validateImportRows(
+  rows: RawRow[],
+  tenantId: number,
+  branchId: number,
+): Promise<{ valid: ValidRow[]; errors: ImportError[] }> {
+  const valid: ValidRow[] = [];
+  const errors: ImportError[] = [];
   const seen = new Set<string>();
 
+  // Branch must belong to this tenant — block cross-tenant branch IDs.
+  // (branches table is queried via the schema; do a lightweight class lookup using branch.)
+  // We rely on classes being tenant-scoped which we already check.
+
   for (let i = 0; i < rows.length; i++) {
-    const row = rows[i] as Record<string, unknown>;
+    const row = rows[i];
     const rowNum = i + 1;
 
     const admissionNo = String(row.admission_no ?? row.admissionNo ?? "").trim();
@@ -95,6 +110,10 @@ router.post("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL
     const [clsRow] = await db.select().from(classesTable).where(and(eq(classesTable.tenantId, tenantId), eq(classesTable.name, cls))).limit(1);
     if (!clsRow) {
       errors.push({ row: rowNum, field: "class", message: `Class not found: ${cls}`, data: row });
+      continue;
+    }
+    if (clsRow.branchId !== branchId) {
+      errors.push({ row: rowNum, field: "class", message: `Class ${cls} does not belong to selected branch`, data: row });
       continue;
     }
 
@@ -129,6 +148,17 @@ router.post("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL
     });
   }
 
+  return { valid, errors };
+}
+
+router.post("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL), async (req, res): Promise<void> => {
+  const { rows, branchId } = req.body;
+  if (!rows || !Array.isArray(rows) || !branchId) {
+    res.status(400).json({ error: "rows and branchId required" });
+    return;
+  }
+  const tenantId = req.user!.tenantId;
+  const { valid, errors } = await validateImportRows(rows, tenantId, Number(branchId));
   res.json({ valid, errors, totalRows: rows.length, validRows: valid.length, errorRows: errors.length });
 });
 
@@ -139,49 +169,70 @@ router.post("/students/import/confirm", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL
     return;
   }
   const tenantId = req.user!.tenantId;
+  // Re-validate server-side. Never trust client-provided "validated" rows.
+  const { valid, errors } = await validateImportRows(rows, tenantId, Number(branchId));
 
   const [batch] = await db.insert(studentImportBatchesTable).values({
     tenantId,
-    branchId,
+    branchId: Number(branchId),
     uploadedBy: req.user!.userId,
     filename: filename ?? "import.csv",
     totalRows: rows.length,
     successRows: 0,
-    errorRows: 0,
+    errorRows: errors.length,
     status: "processing",
   }).returning();
 
   let successRows = 0;
-  let errorRows = 0;
+  let insertErrors = 0;
 
-  for (const row of rows as Record<string, unknown>[]) {
+  for (const row of valid) {
     try {
       await db.insert(studentsTable).values({
         tenantId,
-        branchId,
+        branchId: Number(branchId),
         batchId: batch.id,
-        admissionNo: String(row.admissionNo),
-        name: String(row.name),
-        classId: Number(row.classId),
-        sectionId: Number(row.sectionId),
-        rollNo: row.rollNo as string | null,
-        fatherName: row.fatherName as string | null,
-        motherName: row.motherName as string | null,
-        parentContact: row.parentContact as string | null,
-        houseId: row.houseId as number | null,
+        admissionNo: row.admissionNo,
+        name: row.name,
+        classId: row.classId,
+        sectionId: row.sectionId,
+        rollNo: row.rollNo,
+        fatherName: row.fatherName,
+        motherName: row.motherName,
+        parentContact: row.parentContact,
+        houseId: row.houseId,
         status: "active",
       });
       successRows++;
     } catch {
-      errorRows++;
+      insertErrors++;
     }
   }
 
-  await db.update(studentImportBatchesTable).set({ successRows, errorRows, status: "completed" }).where(eq(studentImportBatchesTable.id, batch.id));
+  const totalErrors = errors.length + insertErrors;
+  const finalStatus = totalErrors === 0 ? "completed" : (successRows === 0 ? "failed" : "partial");
+  await db.update(studentImportBatchesTable).set({ successRows, errorRows: totalErrors, status: finalStatus }).where(eq(studentImportBatchesTable.id, batch.id));
 
-  await writeAuditLog({ user: req.user, tenantId, action: "IMPORT", entityType: "students", entityId: batch.id, newValue: { totalRows: rows.length, successRows }, ipAddress: req.ip });
+  await writeAuditLog({
+    user: req.user, tenantId,
+    action: finalStatus === "completed" ? "IMPORT" : (finalStatus === "failed" ? "IMPORT_FAILED" : "IMPORT_PARTIAL"),
+    entityType: "students", entityId: batch.id,
+    newValue: { totalRows: rows.length, successRows, errorRows: totalErrors, validationErrors: errors.length, insertErrors },
+    ipAddress: req.ip,
+  });
 
-  res.json({ batchId: batch.id, totalRows: rows.length, successRows, errorRows, message: `Imported ${successRows} students successfully` });
+  res.json({
+    batchId: batch.id,
+    totalRows: rows.length,
+    successRows,
+    errorRows: totalErrors,
+    errors,
+    message: finalStatus === "completed"
+      ? `Imported ${successRows} students successfully`
+      : finalStatus === "failed"
+      ? `Import failed: 0 of ${rows.length} rows imported (${totalErrors} errors)`
+      : `Partial import: ${successRows} of ${rows.length} rows imported (${totalErrors} errors)`,
+  });
 });
 
 router.get("/students/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, count, gte, lte } from "drizzle-orm";
+import { eq, and, count, gte, lte, inArray } from "drizzle-orm";
 import { db, dailyClassLogsTable, teacherAssignmentsTable, usersTable, classesTable, sectionsTable, subjectsTable, studentLogEventsTable, studentsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
 import { requireTenant } from "../middlewares/requireTenant";
@@ -7,6 +7,7 @@ import { requireRoles, ROLES } from "../middlewares/requireRoles";
 import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
 import { sendInAppNotification, notifyRolesInBranch } from "../lib/notify";
+import { isPrivileged, isCoordinator } from "../lib/authzScope";
 
 const router: IRouter = Router();
 router.use(authenticate);
@@ -126,6 +127,25 @@ router.post("/logs", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<
   const tenantId = req.user!.tenantId;
   const teacherId = req.user!.userId;
 
+  // Teachers (non-privileged) may only log classes they are actually assigned to.
+  if (!isPrivileged(req) && !isCoordinator(req)) {
+    const [assignment] = await db.select({ id: teacherAssignmentsTable.id })
+      .from(teacherAssignmentsTable)
+      .where(and(
+        eq(teacherAssignmentsTable.tenantId, tenantId),
+        eq(teacherAssignmentsTable.teacherId, teacherId),
+        eq(teacherAssignmentsTable.classId, classId),
+        eq(teacherAssignmentsTable.sectionId, sectionId),
+        eq(teacherAssignmentsTable.subjectId, subjectId),
+        eq(teacherAssignmentsTable.isActive, true),
+      ))
+      .limit(1);
+    if (!assignment) {
+      res.status(403).json({ error: "You are not assigned to teach this class/section/subject" });
+      return;
+    }
+  }
+
   const [log] = await db.insert(dailyClassLogsTable).values({
     tenantId, branchId, teacherId, classId, sectionId, subjectId, date, periodNumber,
     syllabusId: syllabusId ?? null, topicPlanned: topicPlanned ?? null, topicTaught: topicTaught ?? null,
@@ -134,16 +154,10 @@ router.post("/logs", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<
     notebookWorkGiven: notebookWorkGiven ?? false, notebookWorkDetails: notebookWorkDetails ?? null,
     disciplineIssue: disciplineIssue ?? false, disciplineDetails: disciplineDetails ?? null,
     achievementDetails: achievementDetails ?? null, improvementDetails: improvementDetails ?? null,
-    remarks: remarks ?? null, verificationStatus: "Pending",
+    remarks: remarks ?? null, verificationStatus: "Draft", submittedAt: null,
   }).returning();
 
-  await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "daily_log", entityId: log.id, newValue: log, ipAddress: req.ip });
-  await notifyRolesInBranch({
-    tenantId, branchId: log.branchId, roleNames: [ROLES.COORDINATOR, ROLES.PRINCIPAL],
-    title: "New log to verify",
-    body: `${req.user!.email} submitted a class log for Period ${log.periodNumber}.`,
-    type: "info", relatedEntityType: "daily_log", relatedEntityId: log.id,
-  });
+  await writeAuditLog({ user: req.user, tenantId, action: "CREATE_DRAFT", entityType: "daily_log", entityId: log.id, newValue: log, ipAddress: req.ip });
   res.status(201).json(await enrichLog(log));
 });
 
@@ -153,6 +167,12 @@ router.get("/logs/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promi
   const [log] = await db.select().from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
   if (!log) {
     res.status(404).json({ error: "Log not found" });
+    return;
+  }
+  // Authorization: teachers can only read their own logs.
+  // Coordinators / Principals / Directors / Admins have tenant-wide access.
+  if (!isPrivileged(req) && !isCoordinator(req) && log.teacherId !== req.user!.userId) {
+    res.status(403).json({ error: "Forbidden: not your log" });
     return;
   }
   const enriched = await enrichLog(log);
@@ -177,10 +197,14 @@ router.patch("/logs/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Pro
     res.status(403).json({ error: "Cannot edit a verified log" });
     return;
   }
-  const userRoleNames = req.user!.roles.map((r) => r.roleName);
-  const isPrivileged = userRoleNames.some((r) => [ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL, ROLES.COORDINATOR].includes(r as typeof ROLES.SUPER_ADMIN));
-  if (!isPrivileged && existing.teacherId !== req.user!.userId) {
+  const privileged = isPrivileged(req);
+  if (!privileged && existing.teacherId !== req.user!.userId) {
     res.status(403).json({ error: "Cannot edit another teacher's log" });
+    return;
+  }
+  // Teachers can only edit Draft or Rejected. Pending logs are awaiting verification.
+  if (!privileged && existing.verificationStatus === "Pending") {
+    res.status(403).json({ error: "Log is awaiting verification; ask a coordinator to reject it first" });
     return;
   }
   const updates: Record<string, unknown> = {};
@@ -200,14 +224,29 @@ router.post("/logs/:id/submit", requireRoles(...RBAC.ALL_STAFF), async (req, res
     res.status(404).json({ error: "Log not found" });
     return;
   }
-  const userRoleNames = req.user!.roles.map((r) => r.roleName);
-  const isPrivileged = userRoleNames.some((r) => [ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL, ROLES.COORDINATOR].includes(r as typeof ROLES.SUPER_ADMIN));
-  if (!isPrivileged && existing.teacherId !== req.user!.userId) {
+  if (!isPrivileged(req) && existing.teacherId !== req.user!.userId) {
     res.status(403).json({ error: "Cannot submit another teacher's log" });
     return;
   }
-  const [updated] = await db.update(dailyClassLogsTable).set({ submittedAt: new Date(), verificationStatus: "Pending" }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
-  await writeAuditLog({ user: req.user, tenantId, action: "SUBMIT", entityType: "daily_log", entityId: id, ipAddress: req.ip });
+  if (existing.verificationStatus !== "Draft" && existing.verificationStatus !== "Rejected") {
+    res.status(409).json({ error: `Cannot submit a log in state '${existing.verificationStatus}'` });
+    return;
+  }
+  // Atomic conditional update — guards against concurrent state transitions.
+  const updatedRows = await db.update(dailyClassLogsTable)
+    .set({ submittedAt: new Date(), verificationStatus: "Pending" })
+    .where(and(
+      eq(dailyClassLogsTable.id, id),
+      eq(dailyClassLogsTable.tenantId, tenantId),
+      inArray(dailyClassLogsTable.verificationStatus, ["Draft", "Rejected"]),
+    ))
+    .returning();
+  if (updatedRows.length === 0) {
+    res.status(409).json({ error: "Log state changed concurrently; refresh and try again" });
+    return;
+  }
+  const updated = updatedRows[0];
+  await writeAuditLog({ user: req.user, tenantId, action: "SUBMIT", entityType: "daily_log", entityId: id, oldValue: { verificationStatus: existing.verificationStatus }, newValue: { verificationStatus: "Pending" }, ipAddress: req.ip });
   await notifyRolesInBranch({
     tenantId, branchId: existing.branchId, roleNames: [ROLES.COORDINATOR, ROLES.PRINCIPAL],
     title: "New log to verify",
@@ -226,10 +265,23 @@ router.post("/logs/:id/verify", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR)
     res.status(404).json({ error: "Log not found" });
     return;
   }
-  const [updated] = await db.update(dailyClassLogsTable).set({
+  if (existing.verificationStatus !== "Pending") {
+    res.status(409).json({ error: `Cannot verify a log in state '${existing.verificationStatus}' — only Pending logs can be verified` });
+    return;
+  }
+  const verifiedRows = await db.update(dailyClassLogsTable).set({
     verificationStatus: "Verified", verifiedBy: req.user!.userId,
     verificationTime: new Date(), coordinatorRemarks: coordinatorRemarks ?? null,
-  }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
+  }).where(and(
+    eq(dailyClassLogsTable.id, id),
+    eq(dailyClassLogsTable.tenantId, tenantId),
+    eq(dailyClassLogsTable.verificationStatus, "Pending"),
+  )).returning();
+  if (verifiedRows.length === 0) {
+    res.status(409).json({ error: "Log state changed concurrently; refresh and try again" });
+    return;
+  }
+  const updated = verifiedRows[0];
 
   await writeAuditLog({ user: req.user, tenantId, action: "VERIFY", entityType: "daily_log", entityId: id, oldValue: existing, newValue: { coordinatorRemarks }, ipAddress: req.ip });
   await sendInAppNotification({ tenantId, userId: existing.teacherId, title: "Log Verified", body: `Your class log for Period ${existing.periodNumber} has been verified.`, type: "success", relatedEntityType: "daily_log", relatedEntityId: id });
@@ -250,10 +302,23 @@ router.post("/logs/:id/reject", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR)
     res.status(404).json({ error: "Log not found" });
     return;
   }
-  const [updated] = await db.update(dailyClassLogsTable).set({
+  if (existing.verificationStatus !== "Pending") {
+    res.status(409).json({ error: `Cannot reject a log in state '${existing.verificationStatus}' — only Pending logs can be rejected` });
+    return;
+  }
+  const rejectedRows = await db.update(dailyClassLogsTable).set({
     verificationStatus: "Rejected", verifiedBy: req.user!.userId,
     verificationTime: new Date(), coordinatorRemarks,
-  }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
+  }).where(and(
+    eq(dailyClassLogsTable.id, id),
+    eq(dailyClassLogsTable.tenantId, tenantId),
+    eq(dailyClassLogsTable.verificationStatus, "Pending"),
+  )).returning();
+  if (rejectedRows.length === 0) {
+    res.status(409).json({ error: "Log state changed concurrently; refresh and try again" });
+    return;
+  }
+  const updated = rejectedRows[0];
 
   await writeAuditLog({ user: req.user, tenantId, action: "REJECT", entityType: "daily_log", entityId: id, oldValue: existing, newValue: { coordinatorRemarks }, ipAddress: req.ip });
   await sendInAppNotification({ tenantId, userId: existing.teacherId, title: "Log Rejected", body: `Your log for Period ${existing.periodNumber} was rejected: ${coordinatorRemarks}`, type: "warning", relatedEntityType: "daily_log", relatedEntityId: id });

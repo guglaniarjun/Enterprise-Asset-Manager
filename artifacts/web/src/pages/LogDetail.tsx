@@ -49,11 +49,14 @@ export default function LogDetail() {
   if (!log) return <div>Log not found.</div>;
 
   const roles = user?.roles.map((r) => r.roleName) ?? [];
-  const canVerify = roles.some((r) => ["Coordinator", "Principal", "Director", "Super Admin"].includes(r));
+  const canVerify = roles.some((r) => ["Coordinator", "Principal", "Director", "Super Admin", "Tenant Admin"].includes(r));
   const isOwner = user?.id === log.teacherId;
-  const isPending = log.verificationStatus === "Pending";
-  const isRejected = log.verificationStatus === "Rejected";
-  const notSubmitted = !log.submittedAt;
+  const status = log.verificationStatus;
+  const isDraft = status === "Draft";
+  const isPending = status === "Pending";
+  const isRejected = status === "Rejected";
+  const canEdit = isOwner && (isDraft || isRejected);
+  const canSubmit = isOwner && (isDraft || isRejected);
 
   const handleVerify = () => {
     verify.mutate({ id, data: { coordinatorRemarks: remarks || undefined } }, {
@@ -95,22 +98,23 @@ export default function LogDetail() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge
             className="px-3 py-1 text-sm"
-            variant={log.verificationStatus === "Verified" ? "default" : log.verificationStatus === "Rejected" ? "destructive" : "secondary"}
+            variant={status === "Verified" ? "default" : status === "Rejected" ? "destructive" : status === "Draft" ? "outline" : "secondary"}
           >
-            {log.verificationStatus === "Verified" && <CheckCircle2 className="w-4 h-4 mr-2" />}
-            {log.verificationStatus === "Pending" && <Clock className="w-4 h-4 mr-2" />}
-            {log.verificationStatus === "Rejected" && <XCircle className="w-4 h-4 mr-2" />}
-            {log.verificationStatus}
+            {status === "Verified" && <CheckCircle2 className="w-4 h-4 mr-2" />}
+            {status === "Pending" && <Clock className="w-4 h-4 mr-2" />}
+            {status === "Rejected" && <XCircle className="w-4 h-4 mr-2" />}
+            {status === "Draft" && <Pencil className="w-4 h-4 mr-2" />}
+            {status}
           </Badge>
 
-          {isOwner && (isRejected || notSubmitted) && (
+          {canEdit && (
             <Button variant="outline" size="sm" onClick={() => setLocation(`/logs/${id}/edit`)}>
               <Pencil className="w-4 h-4 mr-2" /> Edit
             </Button>
           )}
-          {isOwner && notSubmitted && (
+          {canSubmit && (
             <Button size="sm" onClick={handleSubmit} disabled={submit.isPending}>
-              <Send className="w-4 h-4 mr-2" /> Submit for verification
+              <Send className="w-4 h-4 mr-2" /> {isRejected ? "Resubmit for verification" : "Submit for verification"}
             </Button>
           )}
           {canVerify && isPending && (
