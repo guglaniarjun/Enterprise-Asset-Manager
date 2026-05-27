@@ -1,6 +1,13 @@
 import { useListStudents } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
@@ -12,19 +19,26 @@ import { Search, Upload } from "lucide-react";
 export default function StudentsList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  
-  const { data, isLoading } = useListStudents({ page, limit: 20, search: search || undefined }, {
-    query: {
-      queryKey: ["studentsList", page, search]
-    }
-  });
+
+  const { data, isLoading } = useListStudents(
+    { page, limit: 20, search: search || undefined },
+    {
+      query: {
+        queryKey: ["studentsList", page, search],
+      },
+    },
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Students Directory</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Students Directory
+        </h1>
         <Link href="/admin/students/import">
-          <Button><Upload className="w-4 h-4 mr-2" /> Import Students</Button>
+          <Button>
+            <Upload className="w-4 h-4 mr-2" /> Import Students
+          </Button>
         </Link>
       </div>
 
@@ -33,11 +47,14 @@ export default function StudentsList() {
           <CardTitle>Students</CardTitle>
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by name or adm no..." 
-              className="pl-8" 
+            <Input
+              placeholder="Search by name or adm no..."
+              className="pl-8"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </CardHeader>
@@ -63,14 +80,27 @@ export default function StudentsList() {
                 </TableHeader>
                 <TableBody>
                   {data?.data?.map((student) => (
-                    <TableRow key={student.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">{student.admissionNo}</TableCell>
+                    <TableRow
+                      key={student.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
+                      <TableCell className="font-medium">
+                        {student.admissionNo}
+                      </TableCell>
                       <TableCell>{student.name}</TableCell>
-                      <TableCell>{student.className} {student.sectionName}</TableCell>
-                      <TableCell>{student.rollNo || '-'}</TableCell>
-                      <TableCell>{student.houseName || '-'}</TableCell>
                       <TableCell>
-                        <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
+                        {student.className} {student.sectionName}
+                      </TableCell>
+                      <TableCell>{student.rollNo || "-"}</TableCell>
+                      <TableCell>{student.houseName || "-"}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            student.status === "Active"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
                           {student.status}
                         </Badge>
                       </TableCell>
@@ -78,20 +108,23 @@ export default function StudentsList() {
                   ))}
                   {(!data?.data || data.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground py-8"
+                      >
                         No students found
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-              
+
               {data?.pagination && data.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
                     Previous
@@ -102,7 +135,11 @@ export default function StudentsList() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
+                    onClick={() =>
+                      setPage((p) =>
+                        Math.min(data.pagination.totalPages, p + 1),
+                      )
+                    }
                     disabled={page === data.pagination.totalPages}
                   >
                     Next

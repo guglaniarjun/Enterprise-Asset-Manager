@@ -6,18 +6,35 @@ import { z } from "zod";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export default function ChangePassword() {
   const [, setLocation] = useLocation();
@@ -27,7 +44,11 @@ export default function ChangePassword() {
 
   const form = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
   async function onSubmit(values: z.infer<typeof passwordSchema>) {
@@ -45,10 +66,17 @@ export default function ChangePassword() {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as any).error || "Failed to change password.");
       }
-      toast({ title: "Password updated", description: "You can now continue using the platform." });
+      toast({
+        title: "Password updated",
+        description: "You can now continue using the platform.",
+      });
       setLocation("/");
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to change password.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password.",
+        variant: "destructive",
+      });
     } finally {
       setIsPending(false);
     }
@@ -59,7 +87,9 @@ export default function ChangePassword() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
-          <CardDescription>You must change your password to continue.</CardDescription>
+          <CardDescription>
+            You must change your password to continue.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

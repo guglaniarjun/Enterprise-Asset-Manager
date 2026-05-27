@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserProfile, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import {
+  UserProfile,
+  useGetMe,
+  getGetMeQueryKey,
+} from "@workspace/api-client-react";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -12,18 +16,24 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(localStorage.getItem("springfield_token"));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("springfield_token"),
+  );
   const [user, setUser] = useState<UserProfile | null>(() => {
     const stored = localStorage.getItem("springfield_user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  const { data: me, isLoading: meLoading, isError } = useGetMe({
+  const {
+    data: me,
+    isLoading: meLoading,
+    isError,
+  } = useGetMe({
     query: {
       enabled: !!token,
       retry: false,
       queryKey: getGetMeQueryKey(),
-    }
+    },
   });
 
   useEffect(() => {
@@ -52,7 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading: meLoading && !!token }}>
+    <AuthContext.Provider
+      value={{ user, token, login, logout, isLoading: meLoading && !!token }}
+    >
       {children}
     </AuthContext.Provider>
   );

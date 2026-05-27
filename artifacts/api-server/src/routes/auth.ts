@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
-import { db, usersTable, userRolesTable, rolesTable, refreshTokensTable } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  userRolesTable,
+  rolesTable,
+  refreshTokensTable,
+} from "@workspace/db";
 import {
   signAccessToken,
   signRefreshToken,
@@ -21,7 +27,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email.toLowerCase()))
+    .limit(1);
   if (!user || !user.isActive) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
@@ -34,7 +44,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const userRoles = await db
-    .select({ roleId: userRolesTable.roleId, roleName: rolesTable.name, branchId: userRolesTable.branchId })
+    .select({
+      roleId: userRolesTable.roleId,
+      roleName: rolesTable.name,
+      branchId: userRolesTable.branchId,
+    })
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, user.id));
@@ -43,11 +57,18 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     userId: user.id,
     tenantId: user.tenantId,
     email: user.email,
-    roles: userRoles.map((r) => ({ roleId: r.roleId, roleName: r.roleName, branchId: r.branchId ?? null })),
+    roles: userRoles.map((r) => ({
+      roleId: r.roleId,
+      roleName: r.roleName,
+      branchId: r.branchId ?? null,
+    })),
   };
 
   const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken({ userId: user.id, tenantId: user.tenantId });
+  const refreshToken = signRefreshToken({
+    userId: user.id,
+    tenantId: user.tenantId,
+  });
 
   await db.insert(refreshTokensTable).values({
     userId: user.id,
@@ -83,7 +104,10 @@ router.post("/auth/refresh", async (req, res): Promise<void> => {
 
   let decoded: { userId: number; tenantId: number };
   try {
-    decoded = verifyRefreshToken(refreshToken) as { userId: number; tenantId: number };
+    decoded = verifyRefreshToken(refreshToken) as {
+      userId: number;
+      tenantId: number;
+    };
   } catch {
     res.status(401).json({ error: "Invalid refresh token" });
     return;
@@ -93,7 +117,12 @@ router.post("/auth/refresh", async (req, res): Promise<void> => {
   const [stored] = await db
     .select()
     .from(refreshTokensTable)
-    .where(and(eq(refreshTokensTable.tokenHash, tokenHash), isNull(refreshTokensTable.revokedAt)))
+    .where(
+      and(
+        eq(refreshTokensTable.tokenHash, tokenHash),
+        isNull(refreshTokensTable.revokedAt),
+      ),
+    )
     .limit(1);
 
   if (!stored || stored.expiresAt < new Date()) {
@@ -101,14 +130,22 @@ router.post("/auth/refresh", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, decoded.userId)).limit(1);
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, decoded.userId))
+    .limit(1);
   if (!user || !user.isActive) {
     res.status(401).json({ error: "User not found or inactive" });
     return;
   }
 
   const userRoles = await db
-    .select({ roleId: userRolesTable.roleId, roleName: rolesTable.name, branchId: userRolesTable.branchId })
+    .select({
+      roleId: userRolesTable.roleId,
+      roleName: rolesTable.name,
+      branchId: userRolesTable.branchId,
+    })
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, user.id));
@@ -117,7 +154,11 @@ router.post("/auth/refresh", async (req, res): Promise<void> => {
     userId: user.id,
     tenantId: user.tenantId,
     email: user.email,
-    roles: userRoles.map((r) => ({ roleId: r.roleId, roleName: r.roleName, branchId: r.branchId ?? null })),
+    roles: userRoles.map((r) => ({
+      roleId: r.roleId,
+      roleName: r.roleName,
+      branchId: r.branchId ?? null,
+    })),
   });
 
   res.json({ accessToken });
@@ -137,14 +178,22 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 
 router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
   const user = req.user!;
-  const [dbUser] = await db.select().from(usersTable).where(eq(usersTable.id, user.userId)).limit(1);
+  const [dbUser] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, user.userId))
+    .limit(1);
   if (!dbUser) {
     res.status(404).json({ error: "User not found" });
     return;
   }
 
   const userRoles = await db
-    .select({ roleId: userRolesTable.roleId, roleName: rolesTable.name, branchId: userRolesTable.branchId })
+    .select({
+      roleId: userRolesTable.roleId,
+      roleName: rolesTable.name,
+      branchId: userRolesTable.branchId,
+    })
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(eq(userRolesTable.userId, dbUser.id));
@@ -157,7 +206,11 @@ router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
     phone: dbUser.phone ?? null,
     isActive: dbUser.isActive,
     forcePasswordChange: dbUser.forcePasswordChange,
-    roles: userRoles.map((r) => ({ roleId: r.roleId, roleName: r.roleName, branchId: r.branchId ?? null })),
+    roles: userRoles.map((r) => ({
+      roleId: r.roleId,
+      roleName: r.roleName,
+      branchId: r.branchId ?? null,
+    })),
     createdAt: dbUser.createdAt,
   });
 });

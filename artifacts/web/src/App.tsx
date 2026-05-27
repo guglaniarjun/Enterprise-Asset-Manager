@@ -52,9 +52,11 @@ setAuthTokenGetter(() => localStorage.getItem("springfield_token"));
 function RootRedirect() {
   const { user } = useAuth();
   if (!user) return <Redirect to="/login" />;
-  const role = user.roles[0]?.roleName?.toLowerCase().replace(" ", "-") || "director";
-  
-  if (role === "super-admin" || role === "director") return <Redirect to={`/dashboard/director`} />;
+  const role =
+    user.roles[0]?.roleName?.toLowerCase().replace(" ", "-") || "director";
+
+  if (role === "super-admin" || role === "director")
+    return <Redirect to={`/dashboard/director`} />;
   return <Redirect to={`/dashboard/${role}`} />;
 }
 
@@ -68,20 +70,23 @@ function AuthenticatedApp() {
         <Route path="/dashboard/coordinator" component={CoordinatorDashboard} />
         <Route path="/dashboard/teacher" component={TeacherDashboard} />
         <Route path="/dashboard/kpi/:kpiKey" component={KpiDetail} />
-        
+
         <Route path="/logs/submit" component={SubmitLog} />
         <Route path="/logs/missing" component={MissingLogs} />
         <Route path="/logs/compliance" component={Compliance} />
         <Route path="/logs/:id/edit" component={SubmitLog} />
         <Route path="/logs/:id" component={LogDetail} />
         <Route path="/logs" component={LogsList} />
-        
+
         <Route path="/students/:id" component={StudentProfile} />
         <Route path="/students" component={StudentsList} />
 
         <Route path="/teachers/:id" component={TeacherProfile} />
-        <Route path="/classes/:classId/sections/:sectionId" component={ClassSectionProfile} />
-        
+        <Route
+          path="/classes/:classId/sections/:sectionId"
+          component={ClassSectionProfile}
+        />
+
         <Route path="/tasks/:id" component={TaskDetail} />
         <Route path="/tasks" component={TasksList} />
         <Route path="/alerts" component={AlertsList} />
@@ -93,7 +98,7 @@ function AuthenticatedApp() {
         <Route path="/syllabus" component={Syllabus} />
         <Route path="/events" component={EventsList} />
         <Route path="/notifications" component={NotificationsList} />
-        
+
         <Route path="/admin/students/import" component={StudentImport} />
         <Route path="/admin/users" component={UsersList} />
         <Route path="/admin/classes" component={ClassesList} />
@@ -101,7 +106,7 @@ function AuthenticatedApp() {
         <Route path="/admin/teachers" component={TeacherAssignments} />
         <Route path="/admin/houses" component={HousesList} />
         <Route path="/audit-logs" component={AuditLogs} />
-        
+
         <Route component={NotFound} />
       </Switch>
     </AppShell>

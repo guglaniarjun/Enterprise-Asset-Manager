@@ -1,14 +1,31 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListSyllabus, useVerifySyllabus, useListClasses } from "@workspace/api-client-react";
+import {
+  useListSyllabus,
+  useVerifySyllabus,
+  useListClasses,
+} from "@workspace/api-client-react";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, XCircle, Pencil, Plus } from "lucide-react";
 
@@ -33,18 +50,30 @@ export default function Syllabus() {
 
   const roles = user?.roles.map((r) => r.roleName) ?? [];
   const isTeacher = roles.includes("Teacher");
-  const canApprove = roles.some((r) => ["Coordinator", "Principal", "Director", "Super Admin"].includes(r));
+  const canApprove = roles.some((r) =>
+    ["Coordinator", "Principal", "Director", "Super Admin"].includes(r),
+  );
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["syllabusList"] });
 
   const act = (id: number, approved: boolean) => {
-    verify.mutate({ id, data: { approved } }, {
-      onSuccess: () => {
-        toast({ title: approved ? "Syllabus approved" : "Syllabus rejected" });
-        invalidate();
+    verify.mutate(
+      { id, data: { approved } },
+      {
+        onSuccess: () => {
+          toast({
+            title: approved ? "Syllabus approved" : "Syllabus rejected",
+          });
+          invalidate();
+        },
+        onError: (err: unknown) =>
+          toast({
+            title: "Action failed",
+            description: (err as Error).message,
+            variant: "destructive",
+          }),
       },
-      onError: (err: unknown) => toast({ title: "Action failed", description: (err as Error).message, variant: "destructive" }),
-    });
+    );
   };
 
   return (
@@ -63,7 +92,9 @@ export default function Syllabus() {
           <CardTitle>Plans</CardTitle>
           <div className="flex flex-wrap gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="Planned">Planned</SelectItem>
@@ -73,11 +104,15 @@ export default function Syllabus() {
               </SelectContent>
             </Select>
             <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Class" /></SelectTrigger>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All classes</SelectItem>
                 {classesData?.data?.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -107,24 +142,42 @@ export default function Syllabus() {
                 <TableBody>
                   {data?.data?.map((plan) => (
                     <TableRow key={plan.id}>
-                      <TableCell className="font-medium">{plan.teacherName}</TableCell>
-                      <TableCell>{plan.className} {plan.sectionName ?? ""}</TableCell>
+                      <TableCell className="font-medium">
+                        {plan.teacherName}
+                      </TableCell>
+                      <TableCell>
+                        {plan.className} {plan.sectionName ?? ""}
+                      </TableCell>
                       <TableCell>{plan.subjectName}</TableCell>
                       <TableCell>
                         <div className="font-medium">{plan.chapter}</div>
-                        <div className="text-xs text-muted-foreground">{plan.topic}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {plan.topic}
+                        </div>
                       </TableCell>
-                      <TableCell>{plan.month}{plan.week ? `/W${plan.week}` : ""}</TableCell>
                       <TableCell>
-                        <Badge variant={
-                          plan.status === "Completed" ? "default" :
-                          plan.status === "Delayed" ? "destructive" : "secondary"
-                        }>{plan.status}</Badge>
+                        {plan.month}
+                        {plan.week ? `/W${plan.week}` : ""}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            plan.status === "Completed"
+                              ? "default"
+                              : plan.status === "Delayed"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {plan.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                         {isTeacher && plan.teacherId === user?.id && (
                           <Link href={`/syllabus/${plan.id}/edit`}>
-                            <Button variant="ghost" size="sm"><Pencil className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="sm">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
                           </Link>
                         )}
                         {canApprove && plan.status !== "Completed" && (
@@ -135,7 +188,8 @@ export default function Syllabus() {
                               disabled={verify.isPending}
                               onClick={() => act(plan.id, true)}
                             >
-                              <CheckCircle2 className="w-4 h-4 mr-1 text-green-600" /> Approve
+                              <CheckCircle2 className="w-4 h-4 mr-1 text-green-600" />{" "}
+                              Approve
                             </Button>
                             <Button
                               variant="outline"
@@ -143,7 +197,8 @@ export default function Syllabus() {
                               disabled={verify.isPending}
                               onClick={() => act(plan.id, false)}
                             >
-                              <XCircle className="w-4 h-4 mr-1 text-destructive" /> Reject
+                              <XCircle className="w-4 h-4 mr-1 text-destructive" />{" "}
+                              Reject
                             </Button>
                           </>
                         )}
@@ -152,7 +207,10 @@ export default function Syllabus() {
                   ))}
                   {(!data?.data || data.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center text-muted-foreground py-8"
+                      >
                         No syllabus plans found
                       </TableCell>
                     </TableRow>

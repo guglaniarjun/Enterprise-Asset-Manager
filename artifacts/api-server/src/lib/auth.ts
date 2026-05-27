@@ -4,10 +4,18 @@ import crypto from "crypto";
 
 function requireSecret(...vars: Array<string | undefined>): string {
   for (const v of vars) if (v) return v;
-  throw new Error("JWT_SECRET (or SESSION_SECRET fallback) must be set in the environment");
+  throw new Error(
+    "JWT_SECRET (or SESSION_SECRET fallback) must be set in the environment",
+  );
 }
-const ACCESS_SECRET: string = requireSecret(process.env.JWT_SECRET, process.env.SESSION_SECRET);
-const REFRESH_SECRET: string = requireSecret(process.env.JWT_REFRESH_SECRET, process.env.SESSION_SECRET);
+const ACCESS_SECRET: string = requireSecret(
+  process.env.JWT_SECRET,
+  process.env.SESSION_SECRET,
+);
+const REFRESH_SECRET: string = requireSecret(
+  process.env.JWT_REFRESH_SECRET,
+  process.env.SESSION_SECRET,
+);
 const ACCESS_EXPIRES = "15m";
 const REFRESH_EXPIRES = "7d";
 
@@ -22,7 +30,9 @@ export function signAccessToken(payload: JwtPayload): string {
   return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES });
 }
 
-export function signRefreshToken(payload: Pick<JwtPayload, "userId" | "tenantId">): string {
+export function signRefreshToken(
+  payload: Pick<JwtPayload, "userId" | "tenantId">,
+): string {
   return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
 }
 
@@ -30,15 +40,23 @@ export function verifyAccessToken(token: string): JwtPayload {
   return jwt.verify(token, ACCESS_SECRET) as JwtPayload;
 }
 
-export function verifyRefreshToken(token: string): Pick<JwtPayload, "userId" | "tenantId"> {
-  return jwt.verify(token, REFRESH_SECRET) as Pick<JwtPayload, "userId" | "tenantId">;
+export function verifyRefreshToken(
+  token: string,
+): Pick<JwtPayload, "userId" | "tenantId"> {
+  return jwt.verify(token, REFRESH_SECRET) as Pick<
+    JwtPayload,
+    "userId" | "tenantId"
+  >;
 }
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
+export async function comparePassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 

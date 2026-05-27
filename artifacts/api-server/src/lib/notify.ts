@@ -1,5 +1,10 @@
 import { eq, and, inArray, or, isNull } from "drizzle-orm";
-import { db, notificationsTable, userRolesTable, rolesTable } from "@workspace/db";
+import {
+  db,
+  notificationsTable,
+  userRolesTable,
+  rolesTable,
+} from "@workspace/db";
 
 export async function sendInAppNotification(params: {
   tenantId: number;
@@ -18,7 +23,8 @@ export async function sendInAppNotification(params: {
       body: params.body,
       type: params.type ?? "info",
       relatedEntityType: params.relatedEntityType ?? null,
-      relatedEntityId: params.relatedEntityId != null ? String(params.relatedEntityId) : null,
+      relatedEntityId:
+        params.relatedEntityId != null ? String(params.relatedEntityId) : null,
     });
   } catch {
     // notification failures must not break main request flow
@@ -44,7 +50,10 @@ export async function notifyRolesInBranch(params: {
         and(
           eq(userRolesTable.tenantId, params.tenantId),
           inArray(rolesTable.name, params.roleNames),
-          or(eq(userRolesTable.branchId, params.branchId), isNull(userRolesTable.branchId)),
+          or(
+            eq(userRolesTable.branchId, params.branchId),
+            isNull(userRolesTable.branchId),
+          ),
         ),
       );
     const uniqueUserIds = Array.from(new Set(recipients.map((r) => r.userId)));

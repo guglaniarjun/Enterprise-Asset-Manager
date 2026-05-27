@@ -1,16 +1,26 @@
 import { useListUsers } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 export default function UsersList() {
-  const { data, isLoading } = useListUsers({}, {
-    query: {
-      queryKey: ["usersList"]
-    }
-  });
+  const { data, isLoading } = useListUsers(
+    {},
+    {
+      query: {
+        queryKey: ["usersList"],
+      },
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -47,20 +57,28 @@ export default function UsersList() {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {user.roles.map(r => (
-                          <Badge key={r.roleId} variant="secondary" className="text-xs">
+                        {user.roles.map((r) => (
+                          <Badge
+                            key={r.roleId}
+                            variant="secondary"
+                            className="text-xs"
+                          >
                             {r.roleName}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.isActive ? 'default' : 'destructive'}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                      <Badge
+                        variant={user.isActive ? "default" : "destructive"}
+                      >
+                        {user.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

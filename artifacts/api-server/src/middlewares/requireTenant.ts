@@ -12,13 +12,21 @@ import { Request, Response, NextFunction } from "express";
  * queries by `tenantId`, but if any handler ever forgets, the request
  * cannot proceed without an authenticated tenant context.
  */
-export function requireTenant(req: Request, res: Response, next: NextFunction): void {
+export function requireTenant(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (!req.user) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
   const tenantId = req.user.tenantId;
-  if (typeof tenantId !== "number" || !Number.isFinite(tenantId) || tenantId <= 0) {
+  if (
+    typeof tenantId !== "number" ||
+    !Number.isFinite(tenantId) ||
+    tenantId <= 0
+  ) {
     res.status(403).json({ error: "Tenant context missing or invalid" });
     return;
   }

@@ -1,6 +1,13 @@
 import { useListLogs } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
@@ -10,12 +17,15 @@ import { Button } from "@/components/ui/button";
 
 export default function LogsList() {
   const [page, setPage] = useState(1);
-  
-  const { data, isLoading } = useListLogs({ page, limit: 20 }, {
-    query: {
-      queryKey: ["logsList", page]
-    }
-  });
+
+  const { data, isLoading } = useListLogs(
+    { page, limit: 20 },
+    {
+      query: {
+        queryKey: ["logsList", page],
+      },
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -49,42 +59,57 @@ export default function LogsList() {
                 </TableHeader>
                 <TableBody>
                   {data?.data?.map((log) => (
-                    <TableRow key={log.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableRow
+                      key={log.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                       <TableCell>{log.date}</TableCell>
-                      <TableCell className="font-medium">{log.teacherName}</TableCell>
-                      <TableCell>{log.className} {log.sectionName}</TableCell>
+                      <TableCell className="font-medium">
+                        {log.teacherName}
+                      </TableCell>
+                      <TableCell>
+                        {log.className} {log.sectionName}
+                      </TableCell>
                       <TableCell>{log.subjectName}</TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={
-                            log.verificationStatus === 'Verified' ? 'default' : 
-                            log.verificationStatus === 'Rejected' ? 'destructive' : 'secondary'
+                            log.verificationStatus === "Verified"
+                              ? "default"
+                              : log.verificationStatus === "Rejected"
+                                ? "destructive"
+                                : "secondary"
                           }
                         >
                           {log.verificationStatus}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">View</Button>
+                        <Button variant="ghost" size="sm">
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {(!data?.data || data.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground py-8"
+                      >
                         No logs found
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-              
+
               {data?.pagination && data.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
                     Previous
@@ -95,7 +120,11 @@ export default function LogsList() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
+                    onClick={() =>
+                      setPage((p) =>
+                        Math.min(data.pagination.totalPages, p + 1),
+                      )
+                    }
                     disabled={page === data.pagination.totalPages}
                   >
                     Next

@@ -9,7 +9,11 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+export function authenticate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "Missing or invalid authorization header" });
@@ -25,7 +29,11 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 }
 
-export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
+export function optionalAuthenticate(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7);

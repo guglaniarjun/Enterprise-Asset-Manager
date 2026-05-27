@@ -1,16 +1,26 @@
 import { useListSubjects } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function SubjectsList() {
-  const { data, isLoading } = useListSubjects({}, {
-    query: {
-      queryKey: ["subjectsList"]
-    }
-  });
+  const { data, isLoading } = useListSubjects(
+    {},
+    {
+      query: {
+        queryKey: ["subjectsList"],
+      },
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -46,7 +56,7 @@ export default function SubjectsList() {
                     <TableCell>{s.code}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {s.applicableClasses.map(ac => (
+                        {s.applicableClasses.map((ac) => (
                           <Badge key={ac} variant="outline" className="text-xs">
                             {ac}
                           </Badge>
@@ -54,7 +64,9 @@ export default function SubjectsList() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

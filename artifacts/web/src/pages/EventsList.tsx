@@ -1,6 +1,13 @@
 import { useListEvents, useResolveEvent } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,22 +18,28 @@ import { useToast } from "@/hooks/use-toast";
 export default function EventsList() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
-  const { data, isLoading } = useListEvents({}, {
-    query: {
-      queryKey: ["eventsList"]
-    }
-  });
+
+  const { data, isLoading } = useListEvents(
+    {},
+    {
+      query: {
+        queryKey: ["eventsList"],
+      },
+    },
+  );
 
   const resolveEvent = useResolveEvent();
 
   const handleResolve = (id: number) => {
-    resolveEvent.mutate({ id }, {
-      onSuccess: () => {
-        toast({ title: "Event resolved" });
-        queryClient.invalidateQueries({ queryKey: getListEventsQueryKey() });
-      }
-    });
+    resolveEvent.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          toast({ title: "Event resolved" });
+          queryClient.invalidateQueries({ queryKey: getListEventsQueryKey() });
+        },
+      },
+    );
   };
 
   return (
@@ -61,22 +74,43 @@ export default function EventsList() {
               <TableBody>
                 {data?.data?.map((event) => (
                   <TableRow key={event.id}>
-                    <TableCell>{event.logDate ? new Date(event.logDate).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell className="font-medium">{event.studentName}</TableCell>
+                    <TableCell>
+                      {event.logDate
+                        ? new Date(event.logDate).toLocaleDateString()
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {event.studentName}
+                    </TableCell>
                     <TableCell>{event.eventType}</TableCell>
                     <TableCell>
-                      <Badge variant={event.severity === 'High' ? 'destructive' : 'secondary'}>
+                      <Badge
+                        variant={
+                          event.severity === "High"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
                         {event.severity}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={event.status === 'Resolved' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          event.status === "Resolved" ? "default" : "secondary"
+                        }
+                      >
                         {event.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {event.status !== 'Resolved' && (
-                        <Button variant="ghost" size="sm" onClick={() => handleResolve(event.id)} disabled={resolveEvent.isPending}>
+                      {event.status !== "Resolved" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResolve(event.id)}
+                          disabled={resolveEvent.isPending}
+                        >
                           Resolve
                         </Button>
                       )}
@@ -85,7 +119,10 @@ export default function EventsList() {
                 ))}
                 {(!data?.data || data.data.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-muted-foreground py-8"
+                    >
                       No events found
                     </TableCell>
                   </TableRow>

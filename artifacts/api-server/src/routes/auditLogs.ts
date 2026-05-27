@@ -8,7 +8,14 @@ import { requireRoles, ROLES } from "../middlewares/requireRoles";
 const router: IRouter = Router();
 router.use(authenticate);
 router.use(requireTenant);
-router.use(requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.DIRECTOR, ROLES.PRINCIPAL));
+router.use(
+  requireRoles(
+    ROLES.SUPER_ADMIN,
+    ROLES.TENANT_ADMIN,
+    ROLES.DIRECTOR,
+    ROLES.PRINCIPAL,
+  ),
+);
 
 router.get("/audit-logs", async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
@@ -23,15 +30,42 @@ router.get("/audit-logs", async (req, res): Promise<void> => {
   if (entityId) conditions.push(eq(auditLogsTable.entityId, entityId));
 
   const where = and(...conditions);
-  const [{ total }] = await db.select({ total: count() }).from(auditLogsTable).where(where);
-  const rows = await db.select().from(auditLogsTable).where(where).limit(limit).offset(offset).orderBy(auditLogsTable.createdAt);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(auditLogsTable)
+    .where(where);
+  const rows = await db
+    .select()
+    .from(auditLogsTable)
+    .where(where)
+    .limit(limit)
+    .offset(offset)
+    .orderBy(auditLogsTable.createdAt);
 
-  const enriched = await Promise.all(rows.map(async (r) => {
-    const user = r.userId ? (await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, r.userId)).limit(1))[0] : null;
-    return { ...r, userName: user?.name ?? null };
-  }));
+  const enriched = await Promise.all(
+    rows.map(async (r) => {
+      const user = r.userId
+        ? (
+            await db
+              .select({ name: usersTable.name })
+              .from(usersTable)
+              .where(eq(usersTable.id, r.userId))
+              .limit(1)
+          )[0]
+        : null;
+      return { ...r, userName: user?.name ?? null };
+    }),
+  );
 
-  res.json({ data: enriched, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+  res.json({
+    data: enriched,
+    pagination: {
+      page,
+      limit,
+      total: Number(total),
+      totalPages: Math.ceil(Number(total) / limit),
+    },
+  });
 });
 
 export default router;

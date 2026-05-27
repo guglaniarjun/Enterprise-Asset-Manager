@@ -1,12 +1,22 @@
-import { useListHouses, getListHousesQueryKey } from "@workspace/api-client-react";
+import {
+  useListHouses,
+  getListHousesQueryKey,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 export default function HousesList() {
   const { data, isLoading } = useListHouses({
-    query: { queryKey: getListHousesQueryKey() }
+    query: { queryKey: getListHousesQueryKey() },
   });
 
   return (
@@ -41,12 +51,19 @@ export default function HousesList() {
                     <TableCell className="font-medium">{h.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {h.color && <div className="w-4 h-4 rounded-full" style={{ backgroundColor: h.color }} />}
-                        {h.color || '-'}
+                        {h.color && (
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: h.color }}
+                          />
+                        )}
+                        {h.color || "-"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

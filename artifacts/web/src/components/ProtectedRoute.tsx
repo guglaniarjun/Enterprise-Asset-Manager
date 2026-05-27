@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 
-export function ProtectedRoute({ 
-  children, 
-  allowedRoles = [] 
-}: { 
+export function ProtectedRoute({
+  children,
+  allowedRoles = [],
+}: {
   children: React.ReactNode;
   allowedRoles?: string[];
 }) {
@@ -17,14 +17,19 @@ export function ProtectedRoute({
       setLocation("/login");
       return;
     }
-    
-    if (!isLoading && user && user.forcePasswordChange && window.location.pathname !== "/change-password") {
+
+    if (
+      !isLoading &&
+      user &&
+      user.forcePasswordChange &&
+      window.location.pathname !== "/change-password"
+    ) {
       setLocation("/change-password");
       return;
     }
 
     if (!isLoading && user && allowedRoles.length > 0) {
-      const hasRole = user.roles.some(r => allowedRoles.includes(r.roleName));
+      const hasRole = user.roles.some((r) => allowedRoles.includes(r.roleName));
       if (!hasRole) {
         // Redirect to a default dashboard if not allowed
         setLocation("/");

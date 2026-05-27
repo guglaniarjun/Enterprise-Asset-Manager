@@ -1,12 +1,22 @@
-import { useListClasses, getListClassesQueryKey } from "@workspace/api-client-react";
+import {
+  useListClasses,
+  getListClassesQueryKey,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 export default function ClassesList() {
   const { data, isLoading } = useListClasses({
-    query: { queryKey: getListClassesQueryKey() }
+    query: { queryKey: getListClassesQueryKey() },
   });
 
   return (
@@ -41,7 +51,9 @@ export default function ClassesList() {
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>{c.numericLevel}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -25,16 +25,21 @@ function relatedHref(n: NotificationItem): string | null {
 export default function NotificationsList() {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
-  const { data, isLoading } = useListNotifications({}, {
-    query: { queryKey: getListNotificationsQueryKey({}) },
-  });
+  const { data, isLoading } = useListNotifications(
+    {},
+    {
+      query: { queryKey: getListNotificationsQueryKey({}) },
+    },
+  );
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["listNotifications"] });
     qc.invalidateQueries({ queryKey: getListNotificationsQueryKey({}) });
-    qc.invalidateQueries({ queryKey: getListNotificationsQueryKey({ unreadOnly: true }) });
+    qc.invalidateQueries({
+      queryKey: getListNotificationsQueryKey({ unreadOnly: true }),
+    });
   };
 
   const handleClick = (n: NotificationItem) => {
@@ -90,10 +95,21 @@ export default function NotificationsList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{n.title}</span>
-                      {!n.isRead && <Badge variant="secondary" className="text-[10px]">NEW</Badge>}
-                      <Badge variant="outline" className="text-[10px] capitalize">{n.type}</Badge>
+                      {!n.isRead && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          NEW
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] capitalize"
+                      >
+                        {n.type}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{n.body}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {n.body}
+                    </p>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {format(new Date(n.createdAt), "MMM d, HH:mm")}

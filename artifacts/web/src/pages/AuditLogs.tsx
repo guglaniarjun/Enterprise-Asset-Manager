@@ -1,18 +1,28 @@
 import { useListAuditLogs } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function AuditLogs() {
   const [page, setPage] = useState(1);
-  
-  const { data, isLoading } = useListAuditLogs({ page, limit: 50 }, {
-    query: {
-      queryKey: ["auditLogsList", page]
-    }
-  });
+
+  const { data, isLoading } = useListAuditLogs(
+    { page, limit: 50 },
+    {
+      query: {
+        queryKey: ["auditLogsList", page],
+      },
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -46,29 +56,39 @@ export default function AuditLogs() {
                 <TableBody>
                   {data?.data?.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
-                      <TableCell className="font-medium">{log.userName || 'System'}</TableCell>
+                      <TableCell>
+                        {new Date(log.createdAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {log.userName || "System"}
+                      </TableCell>
                       <TableCell>{log.action}</TableCell>
-                      <TableCell>{log.entityType} {log.entityId ? `#${log.entityId}` : ''}</TableCell>
-                      <TableCell>{log.ipAddress || '-'}</TableCell>
+                      <TableCell>
+                        {log.entityType}{" "}
+                        {log.entityId ? `#${log.entityId}` : ""}
+                      </TableCell>
+                      <TableCell>{log.ipAddress || "-"}</TableCell>
                     </TableRow>
                   ))}
                   {(!data?.data || data.data.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-muted-foreground py-8"
+                      >
                         No audit logs found
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-              
+
               {data?.pagination && data.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
                     Previous
@@ -79,7 +99,11 @@ export default function AuditLogs() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
+                    onClick={() =>
+                      setPage((p) =>
+                        Math.min(data.pagination.totalPages, p + 1),
+                      )
+                    }
                     disabled={page === data.pagination.totalPages}
                   >
                     Next
