@@ -1,10 +1,11 @@
-# [Project name]
+# Springfield AI Command Center
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An admin dashboard and command center for Springfield School, backed by an Express + Postgres API and a React + Vite frontend.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, served at `/api`)
+- `pnpm --filter @workspace/web run dev` — run the web frontend (port 5000, served at `/`)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -19,18 +20,27 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Frontend: React + Vite, Tailwind, shadcn/Radix, wouter, react-query
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/web` — Springfield AI Command Center frontend (path `/`)
+- `artifacts/api-server` — Express API (path `/api`)
+- `artifacts/mockup-sandbox` — Design canvas (path `/__mockup`)
+- `lib/api-spec` — OpenAPI source of truth + Orval codegen
+- `lib/api-client-react` — generated react-query hooks + Zod schemas
+- `lib/db` — Drizzle schema and migration tooling
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Contract-first: the OpenAPI spec in `lib/api-spec` drives both server validation and client hooks. Always regenerate via `pnpm --filter @workspace/api-spec run codegen` after spec changes.
+- Path-based routing through the shared reverse proxy on `localhost:80`. Services declare their paths in `artifact.toml`; never call service ports directly.
+- Dev servers must bind to a dual-stack listener (`::`) so the Replit workflow port monitor (which probes IPv6 loopback) recognizes them as healthy. See Gotchas.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Login-gated admin dashboard for Springfield School staff.
+- Demo credentials: `admin@springfieldschool.net` / `Admin@12345`.
 
 ## User preferences
 
@@ -38,7 +48,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- **IPv6 listener required for Vite dev servers.** The workflow port monitor probes the IPv6 loopback (`::1`). If you set `server.host: "0.0.0.0"` in `vite.config.ts`, Vite binds IPv4 only and the workflow will be marked FAILED with `DIDNT_OPEN_A_PORT` even though `curl` succeeds. Use `host: "::"` for both `server` and `preview` blocks (the api-server's bare `app.listen(port)` works because Node defaults to `::`).
+- **Don't run `pnpm dev` from the repo root.** Use `restart_workflow <artifact>` or filter to a specific package; artifacts rely on `PORT`/`BASE_PATH` from `[services.env]`.
+- **Verify with `typecheck`, not `build`.** Build needs workflow-provided env vars and can fail from a plain shell even when types are fine.
 
 ## Pointers
 
