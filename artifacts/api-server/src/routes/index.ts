@@ -20,6 +20,7 @@ import notificationsRouter from "./notifications";
 import auditLogsRouter from "./auditLogs";
 import exportsRouter from "./exports";
 import kpiRouter from "./kpi";
+import operationsRouter from "./operations";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(notificationsRouter);
 router.use(auditLogsRouter);
 router.use(exportsRouter);
 router.use(kpiRouter);
+router.use(operationsRouter);
 
 export default router;

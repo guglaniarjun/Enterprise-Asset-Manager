@@ -33,7 +33,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { label: "Students", href: "/students", roles: ["Director", "Principal", "Coordinator", "Teacher", "Super Admin"] },
     { label: "Events", href: "/events", roles: ["Director", "Principal", "Coordinator", "Super Admin"] },
     { label: "Tasks", href: "/tasks", roles: ["Director", "Principal", "Coordinator", "Teacher", "Super Admin"] },
-    { label: "Alerts", href: "/alerts", roles: ["Director", "Principal", "Super Admin"] },
+    { label: "Alerts", href: "/alerts", roles: ["Director", "Principal", "Coordinator", "Super Admin"] },
+    { label: "Follow-ups", href: "/follow-ups", roles: ["Director", "Principal", "Coordinator", "Teacher", "Super Admin"] },
+    { label: "Accountability", href: "/accountability", roles: ["Director", "Principal", "Super Admin"] },
     { label: "Users", href: "/admin/users", roles: ["Super Admin", "Tenant Admin"] },
   ];
 

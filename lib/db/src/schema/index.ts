@@ -3,3 +3,4 @@ export * from "./academic";
 export * from "./students";
 export * from "./monitoring";
 export * from "./systems";
+export * from "./operations";

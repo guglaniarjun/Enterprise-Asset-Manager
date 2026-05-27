@@ -27,6 +27,15 @@ export const tasksTable = pgTable("tasks", {
   sourceType: text("source_type").notNull().default("Manual"),
   relatedEntityType: text("related_entity_type"),
   relatedEntityId: text("related_entity_id"),
+  // ─── Operational lifecycle (Phase D-Ops) ───
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  resolutionNotes: text("resolution_notes"),
+  slaHours: integer("sla_hours"),
+  slaBreachedAt: timestamp("sla_breached_at", { withTimezone: true }),
+  escalationLevel: integer("escalation_level").notNull().default(0),
+  escalatedAt: timestamp("escalated_at", { withTimezone: true }),
+  escalatedToUserId: integer("escalated_to_user_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -50,6 +59,16 @@ export const alertsTable = pgTable("alerts", {
   assignedTo: integer("assigned_to").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  // ─── Operational lifecycle (Phase D-Ops) ───
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  acknowledgedBy: integer("acknowledged_by").references(() => usersTable.id),
+  resolvedBy: integer("resolved_by").references(() => usersTable.id),
+  resolutionNotes: text("resolution_notes"),
+  slaHours: integer("sla_hours"),
+  slaBreachedAt: timestamp("sla_breached_at", { withTimezone: true }),
+  escalationLevel: integer("escalation_level").notNull().default(0),
+  escalatedAt: timestamp("escalated_at", { withTimezone: true }),
+  escalatedToUserId: integer("escalated_to_user_id").references(() => usersTable.id),
 });
 
 export const insertAlertSchema = createInsertSchema(alertsTable).omit({ id: true, createdAt: true });

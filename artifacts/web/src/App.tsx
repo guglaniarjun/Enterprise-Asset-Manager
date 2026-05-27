@@ -27,7 +27,10 @@ import TeacherProfile from "./pages/TeacherProfile";
 import ClassSectionProfile from "./pages/ClassSectionProfile";
 import KpiDetail from "./pages/KpiDetail";
 import TasksList from "./pages/TasksList";
+import TaskDetail from "./pages/TaskDetail";
 import AlertsList from "./pages/AlertsList";
+import FollowUpsList from "./pages/FollowUpsList";
+import Accountability from "./pages/Accountability";
 import Syllabus from "./pages/Syllabus";
 import SyllabusForm from "./pages/SyllabusForm";
 import SyllabusSummary from "./pages/SyllabusSummary";
@@ -79,8 +82,11 @@ function AuthenticatedApp() {
         <Route path="/teachers/:id" component={TeacherProfile} />
         <Route path="/classes/:classId/sections/:sectionId" component={ClassSectionProfile} />
         
+        <Route path="/tasks/:id" component={TaskDetail} />
         <Route path="/tasks" component={TasksList} />
         <Route path="/alerts" component={AlertsList} />
+        <Route path="/follow-ups" component={FollowUpsList} />
+        <Route path="/accountability" component={Accountability} />
         <Route path="/syllabus/new" component={SyllabusForm} />
         <Route path="/syllabus/summary" component={SyllabusSummary} />
         <Route path="/syllabus/:id/edit" component={SyllabusForm} />
