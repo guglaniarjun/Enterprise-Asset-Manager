@@ -2,11 +2,14 @@ import { Router, type IRouter } from "express";
 import { eq, and, ilike, count } from "drizzle-orm";
 import { db, studentsTable, studentImportBatchesTable, classesTable, sectionsTable, housesTable, studentLogEventsTable, usersTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
-import { requireRoles, ROLES } from "../middlewares/requireRoles";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
 import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
 async function enrichStudent(s: typeof studentsTable.$inferSelect) {
   const [cls] = await db.select({ name: classesTable.name }).from(classesTable).where(eq(classesTable.id, s.classId)).limit(1);
@@ -22,7 +25,7 @@ async function enrichStudent(s: typeof studentsTable.$inferSelect) {
   };
 }
 
-router.get("/students", async (req, res): Promise<void> => {
+router.get("/students", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const page = parseInt(String(req.query.page ?? 1), 10);
   const limit = parseInt(String(req.query.limit ?? 50), 10);
@@ -48,11 +51,11 @@ router.get("/students", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/students/import/preview", async (_req, res): Promise<void> => {
+router.get("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL), async (_req, res): Promise<void> => {
   res.status(405).json({ error: "Use POST" });
 });
 
-router.post("/students/import/preview", requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL), async (req, res): Promise<void> => {
+router.post("/students/import/preview", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL), async (req, res): Promise<void> => {
   const { rows, branchId } = req.body;
   if (!rows || !Array.isArray(rows) || !branchId) {
     res.status(400).json({ error: "rows and branchId required" });
@@ -129,7 +132,7 @@ router.post("/students/import/preview", requireRoles(ROLES.SUPER_ADMIN, ROLES.TE
   res.json({ valid, errors, totalRows: rows.length, validRows: valid.length, errorRows: errors.length });
 });
 
-router.post("/students/import/confirm", requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL), async (req, res): Promise<void> => {
+router.post("/students/import/confirm", requireRoles(...RBAC.ADMIN_AND_PRINCIPAL), async (req, res): Promise<void> => {
   const { rows, branchId, filename } = req.body;
   if (!rows || !Array.isArray(rows) || !branchId) {
     res.status(400).json({ error: "rows and branchId required" });
@@ -181,7 +184,7 @@ router.post("/students/import/confirm", requireRoles(ROLES.SUPER_ADMIN, ROLES.TE
   res.json({ batchId: batch.id, totalRows: rows.length, successRows, errorRows, message: `Imported ${successRows} students successfully` });
 });
 
-router.get("/students/:id", async (req, res): Promise<void> => {
+router.get("/students/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
 
@@ -193,7 +196,7 @@ router.get("/students/:id", async (req, res): Promise<void> => {
 
   const enriched = await enrichStudent(student);
 
-  const recentEvents = await db.select().from(studentLogEventsTable).where(eq(studentLogEventsTable.studentId, id)).orderBy(studentLogEventsTable.createdAt).limit(20);
+  const recentEvents = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.studentId, id), eq(studentLogEventsTable.tenantId, tenantId))).orderBy(studentLogEventsTable.createdAt).limit(20);
   const eventsEnriched = await Promise.all(recentEvents.map(async (e) => {
     const [teacher] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, e.teacherId)).limit(1);
     return { ...e, studentName: enriched.name, admissionNo: enriched.admissionNo, teacherName: teacher?.name ?? "", logDate: null };
@@ -202,7 +205,7 @@ router.get("/students/:id", async (req, res): Promise<void> => {
   res.json({ ...enriched, recentEvents: eventsEnriched });
 });
 
-router.patch("/students/:id", requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL, ROLES.COORDINATOR), async (req, res): Promise<void> => {
+router.patch("/students/:id", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [existing] = await db.select().from(studentsTable).where(and(eq(studentsTable.id, id), eq(studentsTable.tenantId, tenantId))).limit(1);
@@ -215,12 +218,13 @@ router.patch("/students/:id", requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN
   for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [updated] = await db.update(studentsTable).set(updates as any).where(eq(studentsTable.id, id)).returning();
+  const [updated] = await db.update(studentsTable).set(updates as any).where(and(eq(studentsTable.id, id), eq(studentsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: "UPDATE", entityType: "student", entityId: id, oldValue: existing, newValue: updates, ipAddress: req.ip });
   const enriched = await enrichStudent(updated);
   res.json(enriched);
 });
 
-router.get("/students/:id/events", async (req, res): Promise<void> => {
+router.get("/students/:id/events", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const eventType = String(req.query.eventType ?? "");
@@ -232,7 +236,7 @@ router.get("/students/:id/events", async (req, res): Promise<void> => {
     return;
   }
 
-  let events = await db.select().from(studentLogEventsTable).where(eq(studentLogEventsTable.studentId, id)).orderBy(studentLogEventsTable.createdAt);
+  let events = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.studentId, id), eq(studentLogEventsTable.tenantId, tenantId))).orderBy(studentLogEventsTable.createdAt);
   if (eventType) events = events.filter((e) => e.eventType === eventType);
   if (status) events = events.filter((e) => e.status === status);
 

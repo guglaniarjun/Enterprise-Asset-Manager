@@ -2,11 +2,15 @@ import { Router, type IRouter } from "express";
 import { eq, and, count, gte, lte } from "drizzle-orm";
 import { db, dailyClassLogsTable, teacherAssignmentsTable, usersTable, classesTable, sectionsTable, subjectsTable, studentLogEventsTable, studentsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
 import { requireRoles, ROLES } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
+import { writeAuditLog } from "../lib/audit";
 import { sendInAppNotification } from "../lib/notify";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
 async function enrichLog(l: typeof dailyClassLogsTable.$inferSelect) {
   const [teacher] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, l.teacherId)).limit(1);
@@ -26,7 +30,7 @@ async function enrichLog(l: typeof dailyClassLogsTable.$inferSelect) {
   };
 }
 
-router.get("/logs/missing", async (req, res): Promise<void> => {
+router.get("/logs/missing", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const dateStr = String(req.query.date ?? new Date().toISOString().slice(0, 10));
 
@@ -50,7 +54,7 @@ router.get("/logs/missing", async (req, res): Promise<void> => {
   res.json({ date: dateStr, missing, totalMissing: missing.length });
 });
 
-router.get("/logs/compliance", async (req, res): Promise<void> => {
+router.get("/logs/compliance", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const dateFrom = String(req.query.dateFrom ?? new Date().toISOString().slice(0, 10));
   const dateTo = String(req.query.dateTo ?? new Date().toISOString().slice(0, 10));
@@ -80,7 +84,7 @@ router.get("/logs/compliance", async (req, res): Promise<void> => {
   res.json({ dateFrom, dateTo, teachers });
 });
 
-router.get("/logs", async (req, res): Promise<void> => {
+router.get("/logs", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const page = parseInt(String(req.query.page ?? 1), 10);
   const limit = parseInt(String(req.query.limit ?? 50), 10);
@@ -113,7 +117,7 @@ router.get("/logs", async (req, res): Promise<void> => {
   res.json({ data: enriched, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
 });
 
-router.post("/logs", requireRoles(ROLES.TEACHER, ROLES.COORDINATOR, ROLES.PRINCIPAL, ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN), async (req, res): Promise<void> => {
+router.post("/logs", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const { branchId, classId, sectionId, subjectId, date, periodNumber, syllabusId, topicPlanned, topicTaught, syllabusStatus, teachingMethod, homeworkGiven, homeworkDetails, notebookWorkGiven, notebookWorkDetails, disciplineIssue, disciplineDetails, achievementDetails, improvementDetails, remarks } = req.body;
   if (!branchId || !classId || !sectionId || !subjectId || !date || !periodNumber) {
     res.status(400).json({ error: "branchId, classId, sectionId, subjectId, date, periodNumber required" });
@@ -133,10 +137,11 @@ router.post("/logs", requireRoles(ROLES.TEACHER, ROLES.COORDINATOR, ROLES.PRINCI
     remarks: remarks ?? null, verificationStatus: "Pending",
   }).returning();
 
+  await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "daily_log", entityId: log.id, newValue: log, ipAddress: req.ip });
   res.status(201).json(await enrichLog(log));
 });
 
-router.get("/logs/:id", async (req, res): Promise<void> => {
+router.get("/logs/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [log] = await db.select().from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
@@ -145,7 +150,7 @@ router.get("/logs/:id", async (req, res): Promise<void> => {
     return;
   }
   const enriched = await enrichLog(log);
-  const rawEvents = await db.select().from(studentLogEventsTable).where(eq(studentLogEventsTable.dailyLogId, id));
+  const rawEvents = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.dailyLogId, id), eq(studentLogEventsTable.tenantId, tenantId)));
   const studentEvents = await Promise.all(rawEvents.map(async (e) => {
     const [stu] = await db.select({ name: studentsTable.name, admissionNo: studentsTable.admissionNo }).from(studentsTable).where(eq(studentsTable.id, e.studentId)).limit(1);
     const [teacher] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, e.teacherId)).limit(1);
@@ -154,7 +159,7 @@ router.get("/logs/:id", async (req, res): Promise<void> => {
   res.json({ ...enriched, studentEvents });
 });
 
-router.patch("/logs/:id", async (req, res): Promise<void> => {
+router.patch("/logs/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [existing] = await db.select().from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
@@ -166,15 +171,22 @@ router.patch("/logs/:id", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Cannot edit a verified log" });
     return;
   }
+  const userRoleNames = req.user!.roles.map((r) => r.roleName);
+  const isPrivileged = userRoleNames.some((r) => [ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL, ROLES.COORDINATOR].includes(r as typeof ROLES.SUPER_ADMIN));
+  if (!isPrivileged && existing.teacherId !== req.user!.userId) {
+    res.status(403).json({ error: "Cannot edit another teacher's log" });
+    return;
+  }
   const updates: Record<string, unknown> = {};
   const fields = ["topicPlanned", "topicTaught", "syllabusStatus", "teachingMethod", "homeworkGiven", "homeworkDetails", "notebookWorkGiven", "notebookWorkDetails", "disciplineIssue", "disciplineDetails", "achievementDetails", "improvementDetails", "remarks"];
   for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [updated] = await db.update(dailyClassLogsTable).set(updates as any).where(eq(dailyClassLogsTable.id, id)).returning();
+  const [updated] = await db.update(dailyClassLogsTable).set(updates as any).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: "UPDATE", entityType: "daily_log", entityId: id, oldValue: existing, newValue: updates, ipAddress: req.ip });
   res.json(await enrichLog(updated));
 });
 
-router.post("/logs/:id/submit", async (req, res): Promise<void> => {
+router.post("/logs/:id/submit", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [existing] = await db.select().from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
@@ -182,11 +194,18 @@ router.post("/logs/:id/submit", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Log not found" });
     return;
   }
-  const [updated] = await db.update(dailyClassLogsTable).set({ submittedAt: new Date(), verificationStatus: "Pending" }).where(eq(dailyClassLogsTable.id, id)).returning();
+  const userRoleNames = req.user!.roles.map((r) => r.roleName);
+  const isPrivileged = userRoleNames.some((r) => [ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.PRINCIPAL, ROLES.COORDINATOR].includes(r as typeof ROLES.SUPER_ADMIN));
+  if (!isPrivileged && existing.teacherId !== req.user!.userId) {
+    res.status(403).json({ error: "Cannot submit another teacher's log" });
+    return;
+  }
+  const [updated] = await db.update(dailyClassLogsTable).set({ submittedAt: new Date(), verificationStatus: "Pending" }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: "SUBMIT", entityType: "daily_log", entityId: id, ipAddress: req.ip });
   res.json(await enrichLog(updated));
 });
 
-router.post("/logs/:id/verify", requireRoles(ROLES.COORDINATOR, ROLES.PRINCIPAL, ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN), async (req, res): Promise<void> => {
+router.post("/logs/:id/verify", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const { coordinatorRemarks } = req.body;
@@ -198,14 +217,15 @@ router.post("/logs/:id/verify", requireRoles(ROLES.COORDINATOR, ROLES.PRINCIPAL,
   const [updated] = await db.update(dailyClassLogsTable).set({
     verificationStatus: "Verified", verifiedBy: req.user!.userId,
     verificationTime: new Date(), coordinatorRemarks: coordinatorRemarks ?? null,
-  }).where(eq(dailyClassLogsTable.id, id)).returning();
+  }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
 
+  await writeAuditLog({ user: req.user, tenantId, action: "VERIFY", entityType: "daily_log", entityId: id, oldValue: existing, newValue: { coordinatorRemarks }, ipAddress: req.ip });
   await sendInAppNotification({ tenantId, userId: existing.teacherId, title: "Log Verified", body: `Your class log for Period ${existing.periodNumber} has been verified.`, type: "success", relatedEntityType: "daily_log", relatedEntityId: id });
 
   res.json(await enrichLog(updated));
 });
 
-router.post("/logs/:id/reject", requireRoles(ROLES.COORDINATOR, ROLES.PRINCIPAL, ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN), async (req, res): Promise<void> => {
+router.post("/logs/:id/reject", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const { coordinatorRemarks } = req.body;
@@ -221,8 +241,9 @@ router.post("/logs/:id/reject", requireRoles(ROLES.COORDINATOR, ROLES.PRINCIPAL,
   const [updated] = await db.update(dailyClassLogsTable).set({
     verificationStatus: "Rejected", verifiedBy: req.user!.userId,
     verificationTime: new Date(), coordinatorRemarks,
-  }).where(eq(dailyClassLogsTable.id, id)).returning();
+  }).where(and(eq(dailyClassLogsTable.id, id), eq(dailyClassLogsTable.tenantId, tenantId))).returning();
 
+  await writeAuditLog({ user: req.user, tenantId, action: "REJECT", entityType: "daily_log", entityId: id, oldValue: existing, newValue: { coordinatorRemarks }, ipAddress: req.ip });
   await sendInAppNotification({ tenantId, userId: existing.teacherId, title: "Log Rejected", body: `Your log for Period ${existing.periodNumber} was rejected: ${coordinatorRemarks}`, type: "warning", relatedEntityType: "daily_log", relatedEntityId: id });
 
   res.json(await enrichLog(updated));

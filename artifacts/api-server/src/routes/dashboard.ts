@@ -2,11 +2,15 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, count } from "drizzle-orm";
 import { db, dailyClassLogsTable, teacherAssignmentsTable, syllabusBreakupsTable, studentLogEventsTable, tasksTable, alertsTable, usersTable, classesTable, sectionsTable, subjectsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
-router.get("/dashboard/director", async (req, res): Promise<void> => {
+router.get("/dashboard/director", requireRoles(...RBAC.LEADERSHIP), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
 
@@ -64,7 +68,7 @@ router.get("/dashboard/director", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/principal", async (req, res): Promise<void> => {
+router.get("/dashboard/principal", requireRoles(...RBAC.LEADERSHIP), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
 
@@ -88,7 +92,7 @@ router.get("/dashboard/principal", async (req, res): Promise<void> => {
   res.json({ date, rejectedLogs, missingLogs, repeatedNonComplianceTeachers, syllabusDelayedSubjects, seriousDisciplineIssues, coordinatorPendingVerifications });
 });
 
-router.get("/dashboard/teacher", async (req, res): Promise<void> => {
+router.get("/dashboard/teacher", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const teacherId = req.user!.userId;
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
@@ -117,7 +121,7 @@ router.get("/dashboard/teacher", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/coordinator", async (req, res): Promise<void> => {
+router.get("/dashboard/coordinator", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
 
@@ -138,7 +142,7 @@ router.get("/dashboard/coordinator", async (req, res): Promise<void> => {
   res.json({ date, pendingVerifications: pendingLogs.length, verifiedToday, rejectedToday, pendingLogs: enrichedPending });
 });
 
-router.get("/analytics/compliance", async (req, res): Promise<void> => {
+router.get("/analytics/compliance", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const dateFrom = String(req.query.dateFrom ?? new Date().toISOString().slice(0, 10));
   const dateTo = String(req.query.dateTo ?? new Date().toISOString().slice(0, 10));
@@ -180,7 +184,7 @@ router.get("/analytics/compliance", async (req, res): Promise<void> => {
   res.json({ summary: { dateFrom, dateTo, totalExpected, totalSubmitted, overallPercent }, byTeacher, byClass });
 });
 
-router.get("/analytics/discipline", async (req, res): Promise<void> => {
+router.get("/analytics/discipline", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const events = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.tenantId, tenantId), eq(studentLogEventsTable.eventType, "Discipline Issue")));
 
@@ -190,7 +194,7 @@ router.get("/analytics/discipline", async (req, res): Promise<void> => {
 
   const classMap: Record<number, { count: number; logIds: number[] }> = {};
   for (const e of events) {
-    const [log] = await db.select({ classId: dailyClassLogsTable.classId }).from(dailyClassLogsTable).where(eq(dailyClassLogsTable.id, e.dailyLogId)).limit(1);
+    const [log] = await db.select({ classId: dailyClassLogsTable.classId }).from(dailyClassLogsTable).where(and(eq(dailyClassLogsTable.id, e.dailyLogId), eq(dailyClassLogsTable.tenantId, tenantId))).limit(1);
     if (log) {
       if (!classMap[log.classId]) classMap[log.classId] = { count: 0, logIds: [] };
       classMap[log.classId].count++;

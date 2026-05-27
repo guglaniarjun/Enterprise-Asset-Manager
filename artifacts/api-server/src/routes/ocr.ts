@@ -2,9 +2,14 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, ocrUploadsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
+import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
 function mockOcrExtract(filename: string): Record<string, string> {
   return {
@@ -16,7 +21,7 @@ function mockOcrExtract(filename: string): Record<string, string> {
   };
 }
 
-router.post("/ocr/upload", async (req, res): Promise<void> => {
+router.post("/ocr/upload", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const { filename, storagePath, mimeType } = req.body;
   if (!filename || !storagePath || !mimeType) {
     res.status(400).json({ error: "filename, storagePath, mimeType required" });
@@ -32,7 +37,9 @@ router.post("/ocr/upload", async (req, res): Promise<void> => {
   const extracted = mockOcrExtract(filename);
   const [updated] = await db.update(ocrUploadsTable).set({
     ocrRawOutput: JSON.stringify(extracted), extractedFields: JSON.stringify(extracted), status: "Done",
-  }).where(eq(ocrUploadsTable.id, upload.id)).returning();
+  }).where(and(eq(ocrUploadsTable.id, upload.id), eq(ocrUploadsTable.tenantId, tenantId))).returning();
+
+  await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "ocr_upload", entityId: upload.id, newValue: { filename, mimeType }, ipAddress: req.ip });
 
   res.status(201).json({
     id: updated.id,
@@ -43,7 +50,7 @@ router.post("/ocr/upload", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/ocr/:id", async (req, res): Promise<void> => {
+router.get("/ocr/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [upload] = await db.select().from(ocrUploadsTable).where(and(eq(ocrUploadsTable.id, id), eq(ocrUploadsTable.tenantId, tenantId))).limit(1);

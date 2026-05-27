@@ -2,12 +2,17 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { db, dailyClassLogsTable, studentLogEventsTable, usersTable, classesTable, sectionsTable, subjectsTable, studentsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
+import { writeAuditLog } from "../lib/audit";
 import * as XLSX from "xlsx";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
-router.get("/export/logs", async (req, res): Promise<void> => {
+router.get("/export/logs", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const dateFrom = String(req.query.dateFrom ?? "");
   const dateTo = String(req.query.dateTo ?? "");
@@ -40,15 +45,16 @@ router.get("/export/logs", async (req, res): Promise<void> => {
   XLSX.utils.book_append_sheet(wb, ws, "Daily Logs");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
+  await writeAuditLog({ user: req.user, tenantId, action: "EXPORT", entityType: "daily_logs", newValue: { dateFrom, dateTo, classId, count: logs.length }, ipAddress: req.ip });
+
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", "attachment; filename=daily-logs.xlsx");
   res.send(buf);
 });
 
-router.get("/export/events", async (req, res): Promise<void> => {
+router.get("/export/events", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const eventType = String(req.query.eventType ?? "");
-  const classId = req.query.classId ? parseInt(String(req.query.classId), 10) : null;
 
   let events = await db.select().from(studentLogEventsTable).where(eq(studentLogEventsTable.tenantId, tenantId)).orderBy(studentLogEventsTable.createdAt);
   if (eventType) events = events.filter((e) => e.eventType === eventType);
@@ -69,6 +75,8 @@ router.get("/export/events", async (req, res): Promise<void> => {
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "Student Events");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  await writeAuditLog({ user: req.user, tenantId, action: "EXPORT", entityType: "student_events", newValue: { eventType, count: events.length }, ipAddress: req.ip });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", "attachment; filename=student-events.xlsx");

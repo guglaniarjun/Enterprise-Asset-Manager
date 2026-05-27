@@ -2,10 +2,12 @@ import { Router, type IRouter } from "express";
 import { eq, and, count } from "drizzle-orm";
 import { db, auditLogsTable, usersTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
 import { requireRoles, ROLES } from "../middlewares/requireRoles";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 router.use(requireRoles(ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN, ROLES.DIRECTOR, ROLES.PRINCIPAL));
 
 router.get("/audit-logs", async (req, res): Promise<void> => {

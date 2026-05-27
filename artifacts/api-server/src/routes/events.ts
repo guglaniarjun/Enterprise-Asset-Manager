@@ -2,9 +2,14 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { db, studentLogEventsTable, studentsTable, usersTable, dailyClassLogsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
+import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
 async function enrich(e: typeof studentLogEventsTable.$inferSelect) {
   const [stu] = await db.select({ name: studentsTable.name, admissionNo: studentsTable.admissionNo }).from(studentsTable).where(eq(studentsTable.id, e.studentId)).limit(1);
@@ -13,7 +18,7 @@ async function enrich(e: typeof studentLogEventsTable.$inferSelect) {
   return { ...e, studentName: stu?.name ?? "", admissionNo: stu?.admissionNo ?? "", teacherName: teacher?.name ?? "", logDate: log?.date ?? null };
 }
 
-router.get("/events", async (req, res): Promise<void> => {
+router.get("/events", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const studentId = req.query.studentId ? parseInt(String(req.query.studentId), 10) : null;
   const eventType = String(req.query.eventType ?? "");
@@ -28,7 +33,7 @@ router.get("/events", async (req, res): Promise<void> => {
 
   if (dateFrom || dateTo) {
     const logIds = new Set<number>();
-    const logConditions = [];
+    const logConditions = [eq(dailyClassLogsTable.tenantId, tenantId)];
     if (dateFrom) logConditions.push(gte(dailyClassLogsTable.date, dateFrom));
     if (dateTo) logConditions.push(lte(dailyClassLogsTable.date, dateTo));
     const logs = await db.select({ id: dailyClassLogsTable.id }).from(dailyClassLogsTable).where(and(...logConditions));
@@ -40,7 +45,7 @@ router.get("/events", async (req, res): Promise<void> => {
   res.json({ data: enriched });
 });
 
-router.post("/events", async (req, res): Promise<void> => {
+router.post("/events", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const { dailyLogId, studentId, eventType, severity, remarks, followUpRequired, followUpDate } = req.body;
   if (!dailyLogId || !studentId || !eventType) {
     res.status(400).json({ error: "dailyLogId, studentId, eventType required" });
@@ -55,6 +60,12 @@ router.post("/events", async (req, res): Promise<void> => {
     return;
   }
 
+  const [student] = await db.select({ id: studentsTable.id }).from(studentsTable).where(and(eq(studentsTable.id, studentId), eq(studentsTable.tenantId, tenantId))).limit(1);
+  if (!student) {
+    res.status(404).json({ error: "Student not found" });
+    return;
+  }
+
   const [event] = await db.insert(studentLogEventsTable).values({
     tenantId, dailyLogId, studentId, teacherId, eventType,
     severity: severity ?? "Low", remarks: remarks ?? null,
@@ -62,10 +73,11 @@ router.post("/events", async (req, res): Promise<void> => {
     status: "Open",
   }).returning();
 
+  await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "student_event", entityId: event.id, newValue: event, ipAddress: req.ip });
   res.status(201).json(await enrich(event));
 });
 
-router.patch("/events/:id/resolve", async (req, res): Promise<void> => {
+router.patch("/events/:id/resolve", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [existing] = await db.select().from(studentLogEventsTable).where(and(eq(studentLogEventsTable.id, id), eq(studentLogEventsTable.tenantId, tenantId))).limit(1);
@@ -73,7 +85,8 @@ router.patch("/events/:id/resolve", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Event not found" });
     return;
   }
-  const [updated] = await db.update(studentLogEventsTable).set({ status: "Resolved" }).where(eq(studentLogEventsTable.id, id)).returning();
+  const [updated] = await db.update(studentLogEventsTable).set({ status: "Resolved" }).where(and(eq(studentLogEventsTable.id, id), eq(studentLogEventsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: "RESOLVE", entityType: "student_event", entityId: id, oldValue: existing, newValue: { status: "Resolved" }, ipAddress: req.ip });
   res.json(await enrich(updated));
 });
 

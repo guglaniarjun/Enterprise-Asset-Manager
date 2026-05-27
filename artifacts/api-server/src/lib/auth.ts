@@ -2,8 +2,12 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const ACCESS_SECRET = process.env.JWT_SECRET ?? "springfield-access-secret-changeme";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? "springfield-refresh-secret-changeme";
+function requireSecret(...vars: Array<string | undefined>): string {
+  for (const v of vars) if (v) return v;
+  throw new Error("JWT_SECRET (or SESSION_SECRET fallback) must be set in the environment");
+}
+const ACCESS_SECRET: string = requireSecret(process.env.JWT_SECRET, process.env.SESSION_SECRET);
+const REFRESH_SECRET: string = requireSecret(process.env.JWT_REFRESH_SECRET, process.env.SESSION_SECRET);
 const ACCESS_EXPIRES = "15m";
 const REFRESH_EXPIRES = "7d";
 

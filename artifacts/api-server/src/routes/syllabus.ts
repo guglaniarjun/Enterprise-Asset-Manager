@@ -2,10 +2,14 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, syllabusBreakupsTable, usersTable, classesTable, sectionsTable, subjectsTable } from "@workspace/db";
 import { authenticate } from "../middlewares/authenticate";
-import { requireRoles, ROLES } from "../middlewares/requireRoles";
+import { requireTenant } from "../middlewares/requireTenant";
+import { requireRoles } from "../middlewares/requireRoles";
+import { RBAC } from "../lib/rbac";
+import { writeAuditLog } from "../lib/audit";
 
 const router: IRouter = Router();
 router.use(authenticate);
+router.use(requireTenant);
 
 async function enrich(s: typeof syllabusBreakupsTable.$inferSelect) {
   const [teacher] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, s.teacherId)).limit(1);
@@ -15,7 +19,7 @@ async function enrich(s: typeof syllabusBreakupsTable.$inferSelect) {
   return { ...s, teacherName: teacher?.name ?? "", className: cls?.name ?? "", sectionName: sec?.name ?? null, subjectName: sub?.name ?? "" };
 }
 
-router.get("/syllabus/summary", async (req, res): Promise<void> => {
+router.get("/syllabus/summary", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const academicYear = String(req.query.academicYear ?? "");
 
@@ -44,7 +48,7 @@ router.get("/syllabus/summary", async (req, res): Promise<void> => {
   res.json({ totalEntries: total, byStatus, completionPercent, byClass });
 });
 
-router.get("/syllabus", async (req, res): Promise<void> => {
+router.get("/syllabus", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const tenantId = req.user!.tenantId;
   const teacherId = req.query.teacherId ? parseInt(String(req.query.teacherId), 10) : null;
   const classId = req.query.classId ? parseInt(String(req.query.classId), 10) : null;
@@ -67,7 +71,7 @@ router.get("/syllabus", async (req, res): Promise<void> => {
   res.json({ data: enriched });
 });
 
-router.post("/syllabus", requireRoles(ROLES.TEACHER, ROLES.COORDINATOR, ROLES.PRINCIPAL, ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN), async (req, res): Promise<void> => {
+router.post("/syllabus", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const { branchId, classId, sectionId, subjectId, academicYear, month, week, chapter, topic, subtopic, expectedPeriods, plannedStartDate, plannedEndDate, learningOutcomes, teachingAids, activityPlan, assessmentPlan } = req.body;
   if (!branchId || !classId || !subjectId || !academicYear || !month || !chapter || !topic) {
     res.status(400).json({ error: "branchId, classId, subjectId, academicYear, month, chapter, topic required" });
@@ -84,11 +88,12 @@ router.post("/syllabus", requireRoles(ROLES.TEACHER, ROLES.COORDINATOR, ROLES.PR
     activityPlan: activityPlan ?? null, assessmentPlan: assessmentPlan ?? null,
   }).returning();
 
+  await writeAuditLog({ user: req.user, tenantId, action: "CREATE", entityType: "syllabus", entityId: entry.id, newValue: entry, ipAddress: req.ip });
   const enriched = await enrich(entry);
   res.status(201).json(enriched);
 });
 
-router.get("/syllabus/:id", async (req, res): Promise<void> => {
+router.get("/syllabus/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [entry] = await db.select().from(syllabusBreakupsTable).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).limit(1);
@@ -99,7 +104,7 @@ router.get("/syllabus/:id", async (req, res): Promise<void> => {
   res.json(await enrich(entry));
 });
 
-router.patch("/syllabus/:id", async (req, res): Promise<void> => {
+router.patch("/syllabus/:id", requireRoles(...RBAC.ALL_STAFF), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const [existing] = await db.select().from(syllabusBreakupsTable).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).limit(1);
@@ -111,11 +116,12 @@ router.patch("/syllabus/:id", async (req, res): Promise<void> => {
   const fields = ["chapter", "topic", "subtopic", "expectedPeriods", "plannedStartDate", "plannedEndDate", "learningOutcomes", "teachingAids", "activityPlan", "assessmentPlan", "status"];
   for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [updated] = await db.update(syllabusBreakupsTable).set(updates as any).where(eq(syllabusBreakupsTable.id, id)).returning();
+  const [updated] = await db.update(syllabusBreakupsTable).set(updates as any).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: "UPDATE", entityType: "syllabus", entityId: id, oldValue: existing, newValue: updates, ipAddress: req.ip });
   res.json(await enrich(updated));
 });
 
-router.patch("/syllabus/:id/verify", requireRoles(ROLES.COORDINATOR, ROLES.PRINCIPAL, ROLES.SUPER_ADMIN, ROLES.TENANT_ADMIN), async (req, res): Promise<void> => {
+router.patch("/syllabus/:id/verify", requireRoles(...RBAC.LEADERSHIP_AND_COORDINATOR), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const tenantId = req.user!.tenantId;
   const { approved } = req.body;
@@ -128,7 +134,8 @@ router.patch("/syllabus/:id/verify", requireRoles(ROLES.COORDINATOR, ROLES.PRINC
     status: approved ? "Completed" : "Planned",
     verifiedBy: approved ? req.user!.userId : null,
     verifiedAt: approved ? new Date() : null,
-  }).where(eq(syllabusBreakupsTable.id, id)).returning();
+  }).where(and(eq(syllabusBreakupsTable.id, id), eq(syllabusBreakupsTable.tenantId, tenantId))).returning();
+  await writeAuditLog({ user: req.user, tenantId, action: approved ? "VERIFY" : "REJECT", entityType: "syllabus", entityId: id, oldValue: existing, newValue: { approved }, ipAddress: req.ip });
   res.json(await enrich(updated));
 });
 
